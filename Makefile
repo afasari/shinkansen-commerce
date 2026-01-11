@@ -1,20 +1,34 @@
-.PHONY: help proto build run test clean
+.PHONY: help up down logs proto-gen init-deps
 
-help: ## Display this help screen
-    @grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+help: ## Display this help
+    @grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-proto: ## Generate gRPC code from proto files (Go/Rust/Python)
-    @echo "Generating protobufs..."
-    # ./scripts/generate-proto.sh
+# --- Infrastructure ---
+up: ## Start Infrastructure
+    docker-compose -f deploy/docker-compose.yml up -d
 
-build: ## Build all services
-    @echo "Building Docker images..."
-    # docker-compose build
+down: ## Stop Infrastructure
+    docker-compose -f deploy/docker-compose.yml down
 
-run: ## Run all services locally
-    docker-compose up -d
+logs: ## View Logs
+    docker-compose -f deploy/docker-compose.yml logs -f
 
-test: ## Run unit tests
-    @echo "Running tests..."
-    # go test ./...
-    # cd services/inventory-service && cargo test
+# --- Generation ---
+proto-gen: ## Generate gRPC code
+    @echo "Generating Go..."
+    docker run --rm -v $(PWD)/proto:/proto -v $(PWD)/gen:/gen \
+        grpc/go:1.20 \
+        protoc -I/proto --go_out=/gen --go-grpc_out=/gen inventory.proto
+    @echo "Generating Rust (via cargo build)..."
+    cd services/inventory-service && cargo build
+    @echo "✅ Generation Complete."
+
+# --- Dependencies ---
+init-deps: ## Download all dependencies (Go, Python)
+    @echo "Installing Go dependencies..."
+    cd services/gateway-service && go mod tidy
+    cd services/order-service && go mod tidy
+    cd services/product-service && go mod tidy
+    @echo "Installing Python dependencies via uv..."
+    cd services/analytics-worker && uv sync
+
