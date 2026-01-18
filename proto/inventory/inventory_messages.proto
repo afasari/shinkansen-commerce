@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package shinkansen.inventory;
+
+import "shared/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/inventory";
+
+message StockItem {
+  string id = 1;
+  string product_id = 2;
+  string variant_id = 3;
+  string warehouse_id = 4;
+  int32 quantity = 5;
+  int32 reserved_quantity = 6;
+  int32 available_quantity = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message StockMovement {
+  string id = 1;
+  string stock_item_id = 2;
+  MovementType type = 3;
+  int32 quantity = 4;
+  string reference = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+enum MovementType {
+  MOVEMENT_TYPE_UNSPECIFIED = 0;
+  MOVEMENT_TYPE_INBOUND = 1;
+  MOVEMENT_TYPE_OUTBOUND = 2;
+  MOVEMENT_TYPE_RESERVATION = 3;
+  MOVEMENT_TYPE_RELEASE = 4;
+  MOVEMENT_TYPE_ADJUSTMENT = 5;
+}
+
+message GetStockRequest {
+  string product_id = 1;
+  string variant_id = 2;
+  string warehouse_id = 3;
+}
+
+message GetStockResponse {
+  StockItem stock = 1;
+}
+
+message ReserveStockRequest {
+  string order_id = 1;
+  repeated StockReservationItem items = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message StockReservationItem {
+  string product_id = 1;
+  string variant_id = 2;
+  string warehouse_id = 3;
+  int32 quantity = 4;
+}
+
+message ReserveStockResponse {
+  string reservation_id = 1;
+  bool success = 2;
+  repeated string failed_items = 3;
+}
+
+message ReleaseStockRequest {
+  string reservation_id = 1;
+}
+
+message UpdateStockRequest {
+  string product_id = 1;
+  string variant_id = 2;
+  string warehouse_id = 3;
+  int32 quantity_delta = 4;
+  string reason = 5;
+  string reference = 6;
+}
+
+message GetStockMovementsRequest {
+  string stock_item_id = 1;
+  shinkansen.common.Pagination pagination = 2;
+}
+
+message GetStockMovementsResponse {
+  repeated StockMovement movements = 1;
+  shinkansen.common.Pagination pagination = 2;
+}

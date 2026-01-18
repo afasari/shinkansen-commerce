@@ -1,0 +1,12 @@
+go 1.21
+
+use (
+    .
+    ./services/gateway
+    ./services/product-service
+    ./services/order-service
+    ./services/payment-service
+    ./services/user-service
+    ./services/delivery-service
+    ./services/shared/go
+)

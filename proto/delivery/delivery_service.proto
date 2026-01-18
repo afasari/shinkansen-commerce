@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package shinkansen.delivery;
+
+import "shared/common.proto";
+import "delivery/delivery_messages.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/delivery";
+
+service DeliveryService {
+  rpc GetDeliverySlots(GetDeliverySlotsRequest) returns (GetDeliverySlotsResponse);
+  rpc ReserveDeliverySlot(ReserveDeliverySlotRequest) returns (ReserveDeliverySlotResponse);
+  rpc GetShipment(GetShipmentRequest) returns (GetShipmentResponse);
+  rpc UpdateShipmentStatus(UpdateShipmentStatusRequest) returns (shinkansen.common.Empty);
+}

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package shinkansen.product;
+
+import "shared/common.proto";
+import "product/product_messages.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product";
+
+service ProductService {
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (shinkansen.common.Empty);
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
+  rpc GetProductVariants(GetProductVariantsRequest) returns (GetProductVariantsResponse);
+}

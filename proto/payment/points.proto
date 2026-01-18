@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package shinkansen.payment;
+
+import "shared/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/payment";
+
+service PointsService {
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+  rpc RedeemPoints(RedeemPointsRequest) returns (RedeemPointsResponse);
+  rpc IssuePoints(IssuePointsRequest) returns (shinkansen.common.Empty);
+  rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse);
+}
+
+message GetBalanceRequest {
+  string user_id = 1;
+}
+
+message GetBalanceResponse {
+  int64 available_points = 1;
+  int64 pending_points = 2;
+  google.protobuf.Timestamp last_updated = 3;
+}
+
+message RedeemPointsRequest {
+  string user_id = 1;
+  string order_id = 2;
+  int64 points = 3;
+  string reason = 4;
+}
+
+message RedeemPointsResponse {
+  bool success = 1;
+  shinkansen.common.Money yen_value = 2;
+  string transaction_id = 3;
+}
+
+message IssuePointsRequest {
+  string user_id = 1;
+  int64 points = 2;
+  string reason = 3;
+  google.protobuf.StringValue order_id = 4;
+}
+
+message GetHistoryRequest {
+  string user_id = 1;
+  shinkansen.common.Pagination pagination = 2;
+}
+
+message GetHistoryResponse {
+  repeated PointTransaction transactions = 1;
+  shinkansen.common.Pagination pagination = 2;
+}
+
+message PointTransaction {
+  string id = 1;
+  string user_id = 2;
+  int64 amount = 3;
+  PointTransactionType type = 4;
+  string reason = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+enum PointTransactionType {
+  POINT_TRANSACTION_TYPE_UNSPECIFIED = 0;
+  POINT_TRANSACTION_TYPE_EARNED = 1;
+  POINT_TRANSACTION_TYPE_REDEEMED = 2;
+  POINT_TRANSACTION_TYPE_EXPIRED = 3;
+  POINT_TRANSACTION_TYPE_ADJUSTED = 4;
+}

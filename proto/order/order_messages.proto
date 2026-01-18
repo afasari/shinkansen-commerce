@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package shinkansen.order;
+
+import "shared/common.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order";
+
+message Order {
+  string id = 1;
+  string order_number = 2;
+  string user_id = 3;
+  OrderStatus status = 4;
+  shinkansen.common.Money subtotal_amount = 5;
+  shinkansen.common.Money tax_amount = 6;
+  shinkansen.common.Money discount_amount = 7;
+  shinkansen.common.Money total_amount = 8;
+  int64 points_applied = 9;
+  ShippingAddress shipping_address = 10;
+  PaymentMethod payment_method = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+  google.protobuf.StringValue delivery_slot_id = 14;
+  google.protobuf.Timestamp estimated_delivery_at = 15;
+  repeated OrderItem items = 16;
+}
+
+message OrderItem {
+  string id = 1;
+  string product_id = 2;
+  string variant_id = 3;
+  string product_name = 4;
+  int32 quantity = 5;
+  shinkansen.common.Money unit_price = 6;
+  shinkansen.common.Money total_price = 7;
+}
+
+message ShippingAddress {
+  string name = 1;
+  string phone = 2;
+  string postal_code = 3;
+  string prefecture = 4;
+  string city = 5;
+  string address_line1 = 6;
+  string address_line2 = 7;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_CONFIRMED = 2;
+  ORDER_STATUS_PROCESSING = 3;
+  ORDER_STATUS_SHIPPED = 4;
+  ORDER_STATUS_DELIVERED = 5;
+  ORDER_STATUS_CANCELLED = 6;
+  ORDER_STATUS_REFUNDED = 7;
+}
+
+enum PaymentMethod {
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+  PAYMENT_METHOD_CREDIT_CARD = 1;
+  PAYMENT_METHOD_KONBINI_SEVENELEVEN = 2;
+  PAYMENT_METHOD_KONBINI_LAWSON = 3;
+  PAYMENT_METHOD_KONBINI_FAMILYMART = 4;
+  PAYMENT_METHOD_PAYPAY = 5;
+  PAYMENT_METHOD_RAKUTEN_PAY = 6;
+}
+
+message CreateOrderRequest {
+  string user_id = 1;
+  repeated CreateOrderItem items = 2;
+  ShippingAddress shipping_address = 3;
+  PaymentMethod payment_method = 4;
+  google.protobuf.Int64Value points_to_apply = 5;
+  google.protobuf.StringValue delivery_slot_id = 6;
+}
+
+message CreateOrderItem {
+  string product_id = 1;
+  string variant_id = 2;
+  int32 quantity = 3;
+}
+
+message CreateOrderResponse {
+  string order_id = 1;
+  string order_number = 2;
+  OrderStatus status = 3;
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message GetOrderResponse {
+  Order order = 1;
+}
+
+message ListOrdersRequest {
+  string user_id = 1;
+  google.protobuf.StringValue status = 2;
+  shinkansen.common.Pagination pagination = 3;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  shinkansen.common.Pagination pagination = 2;
+}
+
+message UpdateOrderStatusRequest {
+  string order_id = 1;
+  OrderStatus status = 2;
+}
+
+message CancelOrderRequest {
+  string order_id = 1;
+  string reason = 2;
+}
+
+message ApplyPointsRequest {
+  string order_id = 1;
+  int64 points = 2;
+}
+
+message ApplyPointsResponse {
+  bool success = 1;
+  shinkansen.common.Money yen_value = 2;
+}
+
+message ReserveDeliverySlotRequest {
+  string order_id = 1;
+  string slot_id = 2;
+}
+
+message ReserveDeliverySlotResponse {
+  string reservation_id = 1;
+}

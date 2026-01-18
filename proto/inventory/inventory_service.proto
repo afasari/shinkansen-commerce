@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package shinkansen.inventory;
+
+import "shared/common.proto";
+import "inventory/inventory_messages.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/inventory";
+
+service InventoryService {
+  rpc GetStock(GetStockRequest) returns (GetStockResponse);
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+  rpc ReleaseStock(ReleaseStockRequest) returns (shinkansen.common.Empty);
+  rpc UpdateStock(UpdateStockRequest) returns (shinkansen.common.Empty);
+  rpc GetStockMovements(GetStockMovementsRequest) returns (GetStockMovementsResponse);
+}

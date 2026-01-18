@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package shinkansen.payment;
+
+import "shared/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/payment";
+
+service KonbiniService {
+  rpc GeneratePaymentSlip(GeneratePaymentSlipRequest) returns (GeneratePaymentSlipResponse);
+  rpc VerifyPayment(VerifyPaymentRequest) returns (VerifyPaymentResponse);
+  rpc CancelPayment(CancelPaymentRequest) returns (shinkansen.common.Empty);
+}
+
+message GeneratePaymentSlipRequest {
+  string order_id = 1;
+  shinkansen.common.Money amount = 2;
+  KonbiniStore store = 3;
+  google.protobuf.Timestamp expiry_date = 4;
+}
+
+message GeneratePaymentSlipResponse {
+  string payment_id = 1;
+  string payment_number = 2;
+  string confirmation_number = 3;
+  bytes pdf_slip = 4;
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+message VerifyPaymentRequest {
+  string payment_id = 1;
+  string payment_number = 2;
+  string confirmation_number = 3;
+}
+
+message VerifyPaymentResponse {
+  bool verified = 1;
+  google.protobuf.Timestamp paid_at = 2;
+}
+
+message CancelPaymentRequest {
+  string payment_id = 1;
+  string reason = 2;
+}
+
+enum KonbiniStore {
+  KONBINI_STORE_UNSPECIFIED = 0;
+  KONBINI_STORE_SEVENELEVEN = 1;
+  KONBINI_STORE_LAWSON = 2;
+  KONBINI_STORE_FAMILYMART = 3;
+  KONBINI_STORE_MINISTOP = 4;
+  KONBINI_STORE_SEICOMART = 5;
+}

@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package shinkansen.payment;
+
+import "shared/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/payment";
+
+message Payment {
+  string id = 1;
+  string order_id = 2;
+  PaymentMethod method = 3;
+  shinkansen.common.Money amount = 4;
+  PaymentStatus status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  string transaction_id = 8;
+}
+
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_PROCESSING = 2;
+  PAYMENT_STATUS_COMPLETED = 3;
+  PAYMENT_STATUS_FAILED = 4;
+  PAYMENT_STATUS_CANCELLED = 5;
+  PAYMENT_STATUS_REFUNDED = 6;
+}
+
+enum PaymentMethod {
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+  PAYMENT_METHOD_CREDIT_CARD = 1;
+  PAYMENT_METHOD_KONBINI_SEVENELEVEN = 2;
+  PAYMENT_METHOD_KONBINI_LAWSON = 3;
+  PAYMENT_METHOD_KONBINI_FAMILYMART = 4;
+  PAYMENT_METHOD_PAYPAY = 5;
+  PAYMENT_METHOD_RAKUTEN_PAY = 6;
+}
+
+message CreatePaymentRequest {
+  string order_id = 1;
+  PaymentMethod method = 2;
+  shinkansen.common.Money amount = 3;
+}
+
+message CreatePaymentResponse {
+  string payment_id = 1;
+  PaymentStatus status = 2;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+message GetPaymentResponse {
+  Payment payment = 1;
+}
+
+message ProcessPaymentRequest {
+  string payment_id = 1;
+  map<string, string> payment_data = 2;
+}
+
+message ProcessPaymentResponse {
+  PaymentStatus status = 1;
+  string transaction_id = 2;
+}
+
+message RefundPaymentRequest {
+  string payment_id = 1;
+  shinkansen.common.Money amount = 2;
+}

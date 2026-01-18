@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package shinkansen.common;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/common";
+
+message Money {
+  string currency = 1;
+  int64 units = 2;
+  int32 nanos = 3;
+}
+
+message Pagination {
+  int32 page = 1;
+  int32 limit = 2;
+  int32 total = 3;
+}
+
+message Empty {}

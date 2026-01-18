@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package shinkansen.order;
+
+import "shared/common.proto";
+import "order/order_messages.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order";
+
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (shinkansen.common.Empty);
+  rpc CancelOrder(CancelOrderRequest) returns (shinkansen.common.Empty);
+  rpc ApplyPoints(ApplyPointsRequest) returns (ApplyPointsResponse);
+  rpc ReserveDeliverySlot(ReserveDeliverySlotRequest) returns (ReserveDeliverySlotResponse);
+}

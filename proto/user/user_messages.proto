@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package shinkansen.user;
+
+import "shared/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/user";
+
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string phone = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  bool active = 7;
+}
+
+message Address {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string phone = 4;
+  string postal_code = 5;
+  string prefecture = 6;
+  string city = 7;
+  string address_line1 = 8;
+  string address_line2 = 9;
+  bool is_default = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+
+message RegisterUserRequest {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+  string phone = 4;
+}
+
+message RegisterUserResponse {
+  string user_id = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+}
+
+message LoginUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginUserResponse {
+  string user_id = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue phone = 3;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+}
+
+message AddAddressRequest {
+  string user_id = 1;
+  string name = 2;
+  string phone = 3;
+  string postal_code = 4;
+  string prefecture = 5;
+  string city = 6;
+  string address_line1 = 7;
+  string address_line2 = 8;
+  bool is_default = 9;
+}
+
+message AddAddressResponse {
+  string address_id = 1;
+}
+
+message ListAddressesRequest {
+  string user_id = 1;
+}
+
+message ListAddressesResponse {
+  repeated Address addresses = 1;
+}
+
+message UpdateAddressRequest {
+  string address_id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue phone = 3;
+  google.protobuf.StringValue postal_code = 4;
+  google.protobuf.StringValue prefecture = 5;
+  google.protobuf.StringValue city = 6;
+  google.protobuf.StringValue address_line1 = 7;
+  google.protobuf.StringValue address_line2 = 8;
+  google.protobuf.BoolValue is_default = 9;
+}
+
+message UpdateAddressResponse {
+  Address address = 1;
+}
+
+message DeleteAddressRequest {
+  string address_id = 1;
+}

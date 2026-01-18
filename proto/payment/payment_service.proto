@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package shinkansen.payment;
+
+import "shared/common.proto";
+import "payment/payment_messages.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/payment";
+
+service PaymentService {
+  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
+  rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse);
+  rpc RefundPayment(RefundPaymentRequest) returns (shinkansen.common.Empty);
+}

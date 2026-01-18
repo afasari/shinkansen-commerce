@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package shinkansen.delivery;
+
+import "shared/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/delivery";
+
+message DeliverySlot {
+  string id = 1;
+  string delivery_zone_id = 2;
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  int32 capacity = 5;
+  int32 reserved = 6;
+  int32 available = 7;
+  google.protobuf.Timestamp date = 8;
+}
+
+message DeliveryZone {
+  string id = 1;
+  string name = 2;
+  repeated string postal_codes = 3;
+  repeated string prefectures = 4;
+  int32 delivery_days = 5;
+}
+
+message Shipment {
+  string id = 1;
+  string order_id = 2;
+  string tracking_number = 3;
+  ShipmentStatus status = 4;
+  google.protobuf.Timestamp estimated_delivery_at = 5;
+  google.protobuf.Timestamp actual_delivery_at = 6;
+  string carrier = 7;
+  repeated TrackingEvent tracking_events = 8;
+}
+
+message TrackingEvent {
+  string id = 1;
+  string status = 2;
+  string location = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string description = 5;
+}
+
+enum ShipmentStatus {
+  SHIPMENT_STATUS_UNSPECIFIED = 0;
+  SHIPMENT_STATUS_PREPARING = 1;
+  SHIPMENT_STATUS_SHIPPED = 2;
+  SHIPMENT_STATUS_IN_TRANSIT = 3;
+  SHIPMENT_STATUS_DELIVERED = 4;
+  SHIPMENT_STATUS_CANCELLED = 5;
+}
+
+message GetDeliverySlotsRequest {
+  string delivery_zone_id = 1;
+  google.protobuf.Timestamp date = 2;
+}
+
+message GetDeliverySlotsResponse {
+  repeated DeliverySlot slots = 1;
+}
+
+message ReserveDeliverySlotRequest {
+  string slot_id = 1;
+  string order_id = 2;
+}
+
+message ReserveDeliverySlotResponse {
+  string reservation_id = 1;
+  google.protobuf.Timestamp reserved_at = 3;
+}
+
+message GetShipmentRequest {
+  string shipment_id = 1;
+}
+
+message GetShipmentResponse {
+  Shipment shipment = 1;
+}
+
+message UpdateShipmentStatusRequest {
+  string shipment_id = 1;
+  ShipmentStatus status = 2;
+  string description = 3;
+}

@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+package shinkansen.order;
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order";

@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package shinkansen.product;
+
+import "shared/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product";
+
+message Product {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string category_id = 4;
+  shinkansen.common.Money price = 5;
+  string sku = 6;
+  bool active = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  repeated string image_urls = 10;
+  int32 stock_quantity = 11;
+}
+
+message ProductVariant {
+  string id = 1;
+  string product_id = 2;
+  string name = 3;
+  map<string, string> attributes = 4;
+  shinkansen.common.Money price = 5;
+  string sku = 6;
+  int32 stock_quantity = 7;
+}
+
+message Category {
+  string id = 1;
+  string name = 2;
+  string parent_id = 3;
+  int32 level = 4;
+  repeated string child_ids = 5;
+}
+
+message CreateProductRequest {
+  string name = 1;
+  string description = 2;
+  string category_id = 3;
+  shinkansen.common.Money price = 4;
+  string sku = 5;
+  repeated string image_urls = 6;
+  int32 stock_quantity = 7;
+}
+
+message CreateProductResponse {
+  string product_id = 1;
+}
+
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+message ListProductsRequest {
+  string category_id = 1;
+  bool active_only = 2;
+  shinkansen.common.Pagination pagination = 3;
+}
+
+message ListProductsResponse {
+  repeated Product products = 1;
+  shinkansen.common.Pagination pagination = 2;
+}
+
+message UpdateProductRequest {
+  string product_id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue description = 3;
+  google.protobuf.StringValue category_id = 4;
+  shinkansen.common.Money price = 5;
+  google.protobuf.BoolValue active = 6;
+  repeated google.protobuf.StringValue image_urls = 7;
+}
+
+message UpdateProductResponse {
+  Product product = 1;
+}
+
+message DeleteProductRequest {
+  string product_id = 1;
+}
+
+message SearchProductsRequest {
+  string query = 1;
+  string category_id = 2;
+  shinkansen.common.Money min_price = 3;
+  shinkansen.common.Money max_price = 4;
+  bool in_stock_only = 5;
+  shinkansen.common.Pagination pagination = 6;
+}
+
+message SearchProductsResponse {
+  repeated Product products = 1;
+  shinkansen.common.Pagination pagination = 2;
+}
+
+message GetProductVariantsRequest {
+  string product_id = 1;
+}
+
+message GetProductVariantsResponse {
+  repeated ProductVariant variants = 1;
+}
