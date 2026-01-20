@@ -27,7 +27,8 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
+			tokenStr := parts[1]
+			token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, http.ErrHandlerTimeout
 				}

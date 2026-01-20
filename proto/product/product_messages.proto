@@ -4,6 +4,7 @@ package shinkansen.product;
 
 import "shared/common.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 
 option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product";
 

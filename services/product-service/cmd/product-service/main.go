@@ -1,19 +1,17 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	productv1 "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product"
+	"github.com/shinkansen-commerce/shinkansen/services/product-service/internal/cache"
 	"github.com/shinkansen-commerce/shinkansen/services/product-service/internal/config"
 	"github.com/shinkansen-commerce/shinkansen/services/product-service/internal/db"
-	"github.com/shinkansen-commerce/shinkansen/services/product-service/internal/repository"
 	"github.com/shinkansen-commerce/shinkansen/services/product-service/internal/service"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -32,14 +30,16 @@ func main() {
 	}
 	defer logger.Sync()
 
-	db, err := db.New(cfg.DatabaseURL)
+	dbpool, err := db.New(cfg.DatabaseURL)
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
-	defer db.Close()
+	defer dbpool.Close()
 
-	queries := repository.New(db)
-	productService := service.NewProductService(queries, logger)
+	queries := db.NewQueries(dbpool)
+	redisClient := cache.NewRedisClient(cfg.RedisURL)
+	cacheClient := cache.NewRedisCache(redisClient)
+	productService := service.NewProductService(queries, cacheClient, logger)
 
 	server := grpc.NewServer()
 	productv1.RegisterProductServiceServer(server, productService)

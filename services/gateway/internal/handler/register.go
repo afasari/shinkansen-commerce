@@ -2,11 +2,13 @@ package handler
 
 import (
 	"context"
+	"net/http"
 
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 )
 
-func RegisterHandlers(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
+func RegisterHandlers(ctx context.Context, mux *http.ServeMux, conn *grpc.ClientConn) error {
+	productHandler := NewProductHandler(conn)
+	productHandler.RegisterHandlers(mux)
 	return nil
 }

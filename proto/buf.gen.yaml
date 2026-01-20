@@ -14,16 +14,3 @@ plugins:
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
-
-  - name: grpc-gateway
-    out: gen/proto/go
-    opt:
-      - paths=source_relative
-      - generate_unbound_methods=true
-
-  - name: openapiv2
-    out: gen/proto/openapi
-    opt:
-      - json_names_for_fields=false
-      - allow_merge=true
-      - merge_file_name=shinkansen

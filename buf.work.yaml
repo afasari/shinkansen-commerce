@@ -1,12 +1,3 @@
-version: v2
-modules:
-  - path: proto
-    name: buf.build/shinkansen/shinkansen-commerce
-deps:
-  - buf.build/googleapis/googleapis
-lint:
-  use:
-    - DEFAULT
-breaking:
-  use:
-    - FILE
+version: v1
+directories:
+  - proto

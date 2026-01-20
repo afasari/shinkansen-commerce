@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/shinkansen-commerce/shinkansen/services/gateway/internal/config"
 	"github.com/shinkansen-commerce/shinkansen/services/gateway/internal/handler"
 	"github.com/shinkansen-commerce/shinkansen/services/gateway/internal/middleware"
@@ -18,57 +17,45 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+var (
+	logger *zap.Logger
+	cfg    *config.Config
+)
+
 func main() {
+	logger, _ = zap.NewProduction()
+	defer logger.Sync()
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	logger, err := zap.NewProduction()
-	if err != nil {
-		log.Fatalf("Failed to create logger: %v", err)
-	}
-	defer logger.Sync()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	conn, err := grpc.DialContext(
-		ctx,
-		cfg.GRPCServerAddress,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
+	conn, err := grpc.NewClient(cfg.GRPCServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Fatal("Failed to dial gRPC server", zap.Error(err))
 	}
 	defer conn.Close()
 
-	gwmux := runtime.NewServeMux(
-		runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
-			if key == "Authorization" {
-				return key, true
-			}
-			return runtime.DefaultHeaderMatcher(key)
-		}),
-	)
+	mux := http.NewServeMux()
 
-	if err := handler.RegisterHandlers(ctx, gwmux, conn); err != nil {
+	if err := handler.RegisterHandlers(ctx, mux, conn); err != nil {
 		logger.Fatal("Failed to register handlers", zap.Error(err))
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/", middleware.Chain(
-		gwmux,
+	chain := middleware.Chain(mux,
 		middleware.CORS(),
 		middleware.RequestID(),
 		middleware.Logging(logger),
 		middleware.Auth(cfg.JWTSecret),
-	))
+	)
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPServerAddress,
-		Handler: mux,
+		Handler: chain,
 	}
 
 	go func() {
@@ -84,9 +71,9 @@ func main() {
 	<-quit
 
 	logger.Info("Shutting down HTTP gateway...")
-	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Error("Failed to shutdown gracefully", zap.Error(err))
 	}
 	logger.Info("HTTP gateway stopped")
