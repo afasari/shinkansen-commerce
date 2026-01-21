@@ -1,0 +1,230 @@
+package db
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type Querier interface {
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (uuid.UUID, error)
+	GetOrder(ctx context.Context, id uuid.UUID) (Order, error)
+	ListUserOrders(ctx context.Context, arg ListUserOrdersParams) ([]Order, error)
+	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error
+	AddOrderItem(ctx context.Context, arg AddOrderItemParams) error
+	GetOrderItems(ctx context.Context, orderID uuid.UUID) ([]OrderItem, error)
+}
+
+type Order struct {
+	Id                uuid.UUID
+	OrderNumber       string
+	UserId            uuid.UUID
+	Status            int32
+	SubtotalUnits     int64
+	SubtotalCurrency  string
+	TaxUnits          int64
+	TaxCurrency       string
+	DiscountUnits     int64
+	DiscountCurrency  string
+	TotalUnits        int64
+	TotalCurrency     string
+	PointsApplied     int64
+	ShippingAddress   map[string]interface{}
+	PaymentMethod     int32
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeliverySlotID    string
+	EstimatedDelivery *time.Time
+}
+
+type OrderItem struct {
+	Id                 uuid.UUID
+	OrderId            uuid.UUID
+	ProductId          uuid.UUID
+	VariantId          string
+	ProductName        string
+	Quantity           int32
+	UnitPriceUnits     int64
+	UnitPriceCurrency  string
+	TotalPriceUnits    int64
+	TotalPriceCurrency string
+	CreatedAt          time.Time
+}
+
+type CreateOrderParams struct {
+	UserId           uuid.UUID
+	Status           int32
+	SubtotalUnits    int64
+	SubtotalCurrency string
+	TaxUnits         int64
+	TaxCurrency      string
+	DiscountUnits    int64
+	DiscountCurrency string
+	TotalUnits       int64
+	TotalCurrency    string
+	PointsApplied    int64
+	ShippingAddress  map[string]interface{}
+	PaymentMethod    int32
+}
+
+type AddOrderItemParams struct {
+	OrderId            uuid.UUID
+	ProductId          uuid.UUID
+	VariantId          string
+	ProductName        string
+	Quantity           int32
+	UnitPriceUnits     int64
+	UnitPriceCurrency  string
+	TotalPriceUnits    int64
+	TotalPriceCurrency string
+}
+
+type ListUserOrdersParams struct {
+	UserId uuid.UUID
+	Status int32
+	Limit  int32
+	Offset int32
+}
+
+type UpdateOrderStatusParams struct {
+	Id     uuid.UUID
+	Status int32
+}
+
+}
+
+type Queries struct {
+	db *pgxpool.Pool
+}
+
+func NewQueries(db *pgxpool.Pool) *Queries {
+	return &Queries{db: db}
+}
+
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (uuid.UUID, error) {
+	const sql = `
+		INSERT INTO orders.orders (
+			user_id, status, subtotal_units, subtotal_currency,
+			tax_units, tax_currency, discount_units, discount_currency,
+			total_units, total_currency, points_applied, shipping_address, payment_method
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		RETURNING id
+	`
+	row := q.db.QueryRow(ctx, sql,
+		arg.UserId, arg.Status, arg.SubtotalUnits, arg.SubtotalCurrency,
+		arg.TaxUnits, arg.TaxCurrency, arg.DiscountUnits, arg.DiscountCurrency,
+		arg.TotalUnits, arg.TotalCurrency, arg.PointsApplied, arg.ShippingAddress, arg.PaymentMethod,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+func (q *Queries) GetOrder(ctx context.Context, id uuid.UUID) (Order, error) {
+	const sql = `
+		SELECT id, order_number, user_id, status, subtotal_units, subtotal_currency,
+		       tax_units, tax_currency, discount_units, discount_currency,
+		       total_units, total_currency, points_applied, shipping_address, payment_method,
+		       created_at, updated_at
+		FROM orders.orders
+		WHERE id = $1
+	`
+	row := q.db.QueryRow(ctx, sql, id)
+	var o Order
+	err := row.Scan(
+		&o.Id, &o.OrderNumber, &o.UserId, &o.Status, &o.SubtotalUnits, &o.SubtotalCurrency,
+		&o.TaxUnits, &o.TaxCurrency, &o.DiscountUnits, &o.DiscountCurrency,
+		&o.TotalUnits, &o.TotalCurrency, &o.PointsApplied, &o.ShippingAddress, &o.PaymentMethod,
+		&o.CreatedAt, &o.UpdatedAt,
+	)
+	return o, err
+}
+
+func (q *Queries) ListUserOrders(ctx context.Context, arg ListUserOrdersParams) ([]Order, error) {
+	const sql = `
+		SELECT id, order_number, user_id, status, subtotal_units, subtotal_currency,
+		       tax_units, tax_currency, discount_units, discount_currency,
+		       total_units, total_currency, points_applied, shipping_address, payment_method,
+		       created_at, updated_at
+		FROM orders.orders
+		WHERE user_id = $1
+		AND ($2::int4 IS NULL OR status = $2)
+		ORDER BY created_at DESC
+		LIMIT $3 OFFSET $4
+	`
+	rows, err := q.db.Query(ctx, sql, arg.UserId, arg.Status, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []Order
+	for rows.Next() {
+		var o Order
+		if err := rows.Scan(
+			&o.Id, &o.OrderNumber, &o.UserId, &o.Status, &o.SubtotalUnits, &o.SubtotalCurrency,
+			&o.TaxUnits, &o.TaxCurrency, &o.DiscountUnits, &o.DiscountCurrency,
+			&o.TotalUnits, &o.TotalCurrency, &o.PointsApplied, &o.ShippingAddress, &o.PaymentMethod,
+			&o.CreatedAt, &o.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		orders = append(orders, o)
+	}
+	return orders, rows.Err()
+}
+
+func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error {
+	const sql = `
+		UPDATE orders.orders
+		SET status = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+	_, err := q.db.Exec(ctx, sql, arg.Id, arg.Status)
+	return err
+}
+
+func (q *Queries) AddOrderItem(ctx context.Context, arg AddOrderItemParams) error {
+	const sql = `
+		INSERT INTO orders.order_items (
+			order_id, product_id, variant_id, product_name, quantity,
+			unit_price_units, unit_price_currency, total_price_units, total_price_currency
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (order_id, product_id) DO NOTHING
+	`
+	_, err := q.db.Exec(ctx, sql,
+		arg.OrderId, arg.ProductId, arg.VariantId, arg.ProductName, arg.Quantity,
+		arg.UnitPriceUnits, arg.UnitPriceCurrency, arg.TotalPriceUnits, arg.TotalPriceCurrency,
+	)
+	return err
+}
+
+func (q *Queries) GetOrderItems(ctx context.Context, orderId uuid.UUID) ([]OrderItem, error) {
+	const sql = `
+		SELECT id, order_id, product_id, variant_id, product_name, quantity,
+		       unit_price_units, unit_price_currency, total_price_units, total_price_currency, created_at
+		FROM orders.order_items
+		WHERE order_id = $1
+		ORDER BY created_at
+	`
+	rows, err := q.db.Query(ctx, sql, orderId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []OrderItem
+	for rows.Next() {
+		var i OrderItem
+		if err := rows.Scan(
+			&i.Id, &i.OrderId, &i.ProductId, &i.VariantId, &i.ProductName, &i.Quantity,
+			&i.UnitPriceUnits, &i.UnitPriceCurrency, &i.TotalPriceUnits, &i.TotalPriceCurrency, &i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	return items, rows.Err()
+}

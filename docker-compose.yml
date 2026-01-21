@@ -1,0 +1,236 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: shinkansen-postgres
+    environment:
+      POSTGRES_DB: shinkansen
+      POSTGRES_USER: shinkansen
+      POSTGRES_PASSWORD: shinkansen_dev_password
+      POSTGRES_HOST: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shinkansen"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: shinkansen-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  product-service:
+    build:
+      context: .
+      dockerfile: services/product-service/Dockerfile
+    container_name: shinkansen-product-service
+    environment:
+      GRPC_SERVER_ADDRESS: :9091
+      METRICS_SERVER_ADDRESS: :8091
+      DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "9091:9091"
+      - "8091:8091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8091/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    container_name: shinkansen-order-service
+    environment:
+      GRPC_SERVER_ADDRESS: :9092
+      METRICS_SERVER_ADDRESS: :8092
+      DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      PRODUCT_SERVICE_GRPC_ADDRESS: product-service:9091
+    ports:
+      - "9092:9092"
+      - "8092:8092"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8092/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    container_name: shinkansen-user-service
+    environment:
+      GRPC_SERVER_ADDRESS: :9103
+      METRICS_SERVER_ADDRESS: :8103
+      DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-change-in-production
+      ACCESS_TOKEN_DURATION: 3600
+      REFRESH_TOKEN_DURATION: 86400
+    ports:
+      - "9103:9103"
+      - "8103:8103"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8103/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    container_name: shinkansen-payment-service
+    environment:
+      GRPC_SERVER_ADDRESS: :9104
+      METRICS_SERVER_ADDRESS: :8104
+      DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "9104:9104"
+      - "8104:8104"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8104/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/inventory-service/Dockerfile
+    container_name: shinkansen-inventory-service
+    environment:
+      GRPC_SERVER_ADDRESS: :9105
+      METRICS_SERVER_ADDRESS: :8105
+      DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+    ports:
+      - "9105:9105"
+      - "8105:8105"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8105/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  delivery-service:
+    build:
+      context: .
+      dockerfile: services/delivery-service/Dockerfile
+    container_name: shinkansen-delivery-service
+    environment:
+      GRPC_SERVER_ADDRESS: :9106
+      METRICS_SERVER_ADDRESS: :8106
+      DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+    ports:
+      - "9106:9106"
+      - "8106:8106"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8106/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    container_name: shinkansen-gateway
+    environment:
+      HTTP_SERVER_ADDRESS: :8080
+      PRODUCT_SERVICE_GRPC_ADDRESS: product-service:9091
+      ORDER_SERVICE_GRPC_ADDRESS: order-service:9092
+      USER_SERVICE_GRPC_ADDRESS: user-service:9103
+      PAYMENT_SERVICE_GRPC_ADDRESS: payment-service:9104
+      INVENTORY_SERVICE_GRPC_ADDRESS: inventory-service:9105
+      DELIVERY_SERVICE_GRPC_ADDRESS: delivery-service:9106
+      JWT_SECRET: your-jwt-secret-change-in-production
+    ports:
+      - "8080:8080"
+    depends_on:
+      product-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      delivery-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  analytics-worker:
+    build:
+      context: .
+      dockerfile: services/analytics-worker/Dockerfile
+    container_name: shinkansen-analytics-worker
+    environment:
+      DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: shinkansen-network

@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	orderpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order"
@@ -12,19 +12,18 @@ import (
 	"github.com/shinkansen-commerce/shinkansen/services/order-service/internal/cache"
 	"github.com/shinkansen-commerce/shinkansen/services/order-service/internal/db"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type OrderService struct {
 	orderpb.UnimplementedOrderServiceServer
-	queries       *db.Queries
+	queries       db.Querier
 	productClient productpb.ProductServiceClient
 	cache         cache.Cache
 	logger        *zap.Logger
 }
 
-func NewOrderService(queries *db.Queries, productClient productpb.ProductServiceClient, cacheClient cache.Cache, logger *zap.Logger) *OrderService {
+func NewOrderService(queries db.Querier, productClient productpb.ProductServiceClient, cacheClient cache.Cache, logger *zap.Logger) *OrderService {
 	return &OrderService{
 		queries:       queries,
 		productClient: productClient,
@@ -40,7 +39,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 		return nil, fmt.Errorf("order must have at least one item")
 	}
 
-	var totalUnits int64
+	var subtotalUnits int64
+
 	for _, item := range req.Items {
 		productResp, err := s.productClient.GetProduct(ctx, &productpb.GetProductRequest{ProductId: item.ProductId})
 		if err != nil {
@@ -52,15 +52,29 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 			return nil, fmt.Errorf("product %s has insufficient stock", item.ProductId)
 		}
 
-		totalUnits += productResp.Product.Price.Units * int64(item.Quantity)
+		itemTotalUnits := productResp.Product.Price.Units * int64(item.Quantity)
+		subtotalUnits += itemTotalUnits
 	}
 
+	taxUnits := int64(float64(subtotalUnits) * 0.10)
+	totalUnits := subtotalUnits + taxUnits
+
+	orderNumber := fmt.Sprintf("ORD-%d", uuid.New().ID())
+
 	orderID, err := s.queries.CreateOrder(ctx, db.CreateOrderParams{
-		UserID:          uuid.MustParse(req.UserId),
-		Status:          "pending",
-		TotalUnits:      totalUnits,
-		TotalCurrency:   "JPY",
-		ShippingAddress: req.ShippingAddress.AsMap(),
+		UserId:           uuid.MustParse(req.UserId),
+		Status:           int32(orderpb.OrderStatus_ORDER_STATUS_PENDING),
+		SubtotalUnits:    subtotalUnits,
+		SubtotalCurrency: "JPY",
+		TaxUnits:         taxUnits,
+		TaxCurrency:      "JPY",
+		DiscountUnits:    0,
+		DiscountCurrency: "JPY",
+		TotalUnits:       totalUnits,
+		TotalCurrency:    "JPY",
+		PointsApplied:    0,
+		ShippingAddress:  s.addressToMap(req.ShippingAddress),
+		PaymentMethod:    int32(req.PaymentMethod),
 	})
 	if err != nil {
 		s.logger.Error("Failed to create order", zap.Error(err))
@@ -70,16 +84,22 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 	for _, item := range req.Items {
 		productResp, err := s.productClient.GetProduct(ctx, &productpb.GetProductRequest{ProductId: item.ProductId})
 		if err != nil {
-			s.logger.Warn("Failed to get product price", zap.String("product_id", item.ProductId), zap.Error(err))
+			s.logger.Error("Failed to get product for item", zap.String("product_id", item.ProductId), zap.Error(err))
 			continue
 		}
 
+		itemTotalUnits := productResp.Product.Price.Units * int64(item.Quantity)
+
 		err = s.queries.AddOrderItem(ctx, db.AddOrderItemParams{
-			OrderID:       orderID,
-			ProductID:     uuid.MustParse(item.ProductId),
-			Quantity:      item.Quantity,
-			PriceUnits:    productResp.Product.Price.Units,
-			PriceCurrency: productResp.Product.Price.Currency,
+			OrderId:            orderID,
+			ProductId:          uuid.MustParse(item.ProductId),
+			VariantId:          item.VariantId,
+			ProductName:        productResp.Product.Name,
+			Quantity:           item.Quantity,
+			UnitPriceUnits:     productResp.Product.Price.Units,
+			UnitPriceCurrency:  productResp.Product.Price.Currency,
+			TotalPriceUnits:    itemTotalUnits,
+			TotalPriceCurrency: productResp.Product.Price.Currency,
 		})
 		if err != nil {
 			s.logger.Error("Failed to add order item", zap.Error(err))
@@ -87,7 +107,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 	}
 
 	return &orderpb.CreateOrderResponse{
-		OrderId: orderID.String(),
+		OrderId:     orderID.String(),
+		OrderNumber: orderNumber,
+		Status:      orderpb.OrderStatus_ORDER_STATUS_PENDING,
 	}, nil
 }
 
@@ -117,17 +139,28 @@ func (s *OrderService) GetOrder(ctx context.Context, req *orderpb.GetOrderReques
 		s.logger.Warn("Failed to cache order", zap.Error(err))
 	}
 
+	orderItems, err := s.queries.GetOrderItems(ctx, orderID)
+	if err != nil {
+		s.logger.Warn("Failed to get order items", zap.Error(err))
+	}
+
+	orderProto := s.orderToProto(order)
+	if orderItems != nil {
+		for _, item := range orderItems {
+			orderProto.Items = append(orderProto.Items, s.orderItemToProto(item))
+		}
+	}
+
 	return &orderpb.GetOrderResponse{
-		Order: s.orderToProto(order),
+		Order: orderProto,
 	}, nil
 }
 
-func (s *OrderService) ListUserOrders(ctx context.Context, req *orderpb.ListUserOrdersRequest) (*orderpb.ListUserOrdersResponse, error) {
-	s.logger.Info("Listing user orders", zap.String("user_id", req.UserId))
+func (s *OrderService) ListOrders(ctx context.Context, req *orderpb.ListOrdersRequest) (*orderpb.ListOrdersResponse, error) {
+	s.logger.Info("Listing orders", zap.String("user_id", req.UserId))
 
 	orders, err := s.queries.ListUserOrders(ctx, db.ListUserOrdersParams{
-		UserID: uuid.MustParse(req.UserId),
-		Status: req.Status,
+		UserId: uuid.MustParse(req.UserId),
 		Limit:  req.Pagination.Limit,
 		Offset: (req.Pagination.Page - 1) * req.Pagination.Limit,
 	})
@@ -141,19 +174,19 @@ func (s *OrderService) ListUserOrders(ctx context.Context, req *orderpb.ListUser
 		orderList = append(orderList, s.orderToProto(o))
 	}
 
-	return &orderpb.ListUserOrdersResponse{
+	return &orderpb.ListOrdersResponse{
 		Orders:     orderList,
 		Pagination: req.Pagination,
 	}, nil
 }
 
-func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderpb.UpdateOrderStatusRequest) (*orderpb.UpdateOrderStatusResponse, error) {
-	s.logger.Info("Updating order status", zap.String("order_id", req.OrderId), zap.String("status", req.Status))
+func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderpb.UpdateOrderStatusRequest) (*sharedpb.Empty, error) {
+	s.logger.Info("Updating order status", zap.String("order_id", req.OrderId), zap.String("status", req.Status.String()))
 
 	orderID := uuid.MustParse(req.OrderId)
 	if err := s.queries.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
-		ID:     orderID,
-		Status: req.Status,
+		Id:     orderID,
+		Status: int32(req.Status),
 	}); err != nil {
 		s.logger.Error("Failed to update order status", zap.String("order_id", req.OrderId), zap.Error(err))
 		return nil, fmt.Errorf("failed to update order status: %w", err)
@@ -164,61 +197,149 @@ func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderpb.Updat
 		s.logger.Warn("Failed to invalidate order cache", zap.Error(err))
 	}
 
-	order, err := s.queries.GetOrder(ctx, orderID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get updated order: %w", err)
-	}
-
-	return &orderpb.UpdateOrderStatusResponse{
-		Order: s.orderToProto(order),
-	}, nil
+	return &sharedpb.Empty{}, nil
 }
 
 func (s *OrderService) CancelOrder(ctx context.Context, req *orderpb.CancelOrderRequest) (*sharedpb.Empty, error) {
 	s.logger.Info("Cancelling order", zap.String("order_id", req.OrderId))
 
+	return s.UpdateOrderStatus(ctx, &orderpb.UpdateOrderStatusRequest{
+		OrderId: req.OrderId,
+		Status:  orderpb.OrderStatus_ORDER_STATUS_CANCELLED,
+	})
+}
+
+func (s *OrderService) ApplyPoints(ctx context.Context, req *orderpb.ApplyPointsRequest) (*orderpb.ApplyPointsResponse, error) {
+	s.logger.Info("Applying points to order", zap.String("order_id", req.OrderId), zap.Int64("points", req.Points))
+
 	orderID := uuid.MustParse(req.OrderId)
-	if err := s.queries.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
-		ID:     orderID,
-		Status: "cancelled",
-	}); err != nil {
-		s.logger.Error("Failed to cancel order", zap.String("order_id", req.OrderId), zap.Error(err))
-		return nil, fmt.Errorf("failed to cancel order: %w", err)
+
+	order, err := s.queries.GetOrder(ctx, orderID)
+	if err != nil {
+		s.logger.Error("Failed to get order", zap.String("order_id", req.OrderId), zap.Error(err))
+		return nil, fmt.Errorf("failed to get order: %w", err)
 	}
+
+	if order.Status != int32(orderpb.OrderStatus_ORDER_STATUS_PENDING) {
+		return nil, fmt.Errorf("cannot apply points to non-pending order")
+	}
+
+	if req.Points > 10000 {
+		return nil, fmt.Errorf("cannot apply more than 10,000 points to a single order")
+	}
+
+	pointsValue := req.Points * 10
 
 	cacheKey := cache.OrderCacheKey(req.OrderId)
 	if err := s.cache.Delete(ctx, cacheKey); err != nil {
 		s.logger.Warn("Failed to invalidate order cache", zap.Error(err))
 	}
 
-	return &sharedpb.Empty{}, nil
+	return &orderpb.ApplyPointsResponse{
+		Success: true,
+		YenValue: &sharedpb.Money{
+			Units:    pointsValue,
+			Currency: "JPY",
+		},
+	}, nil
+}
+
+func (s *OrderService) ReserveDeliverySlot(ctx context.Context, req *orderpb.ReserveDeliverySlotRequest) (*orderpb.ReserveDeliverySlotResponse, error) {
+	s.logger.Info("Reserving delivery slot", zap.String("order_id", req.OrderId), zap.String("slot", req.SlotId))
+
+	orderID := uuid.MustParse(req.OrderId)
+
+	order, err := s.queries.GetOrder(ctx, orderID)
+	if err != nil {
+		s.logger.Error("Failed to get order", zap.String("order_id", req.OrderId), zap.Error(err))
+		return nil, fmt.Errorf("failed to get order: %w", err)
+	}
+
+	if order.Status != int32(orderpb.OrderStatus_ORDER_STATUS_PENDING) {
+		return nil, fmt.Errorf("cannot reserve slot for non-pending order")
+	}
+
+	if req.SlotId == "" {
+		return nil, fmt.Errorf("delivery slot ID is required")
+	}
+
+	reservationID := fmt.Sprintf("RES-%d", uuid.New().String())
+
+	cacheKey := cache.OrderCacheKey(req.OrderId)
+	if err := s.cache.Delete(ctx, cacheKey); err != nil {
+		s.logger.Warn("Failed to invalidate order cache", zap.Error(err))
+	}
+
+	return &orderpb.ReserveDeliverySlotResponse{
+		ReservationId: reservationID,
+	}, nil
 }
 
 func (s *OrderService) orderToProto(o db.Order) *orderpb.Order {
+	status := orderpb.OrderStatus(o.Status)
+
 	return &orderpb.Order{
-		Id:              o.ID.String(),
-		UserId:          o.UserID.String(),
-		Status:          o.Status,
-		Total:           &sharedpb.Money{Units: o.TotalUnits, Currency: o.TotalCurrency},
+		Id:              o.Id.String(),
+		OrderNumber:     o.OrderNumber,
+		UserId:          o.UserId.String(),
+		Status:          status,
+		SubtotalAmount:  s.moneyToProto(o.SubtotalUnits, o.SubtotalCurrency),
+		TaxAmount:       s.moneyToProto(o.TaxUnits, o.TaxCurrency),
+		DiscountAmount:  s.moneyToProto(o.DiscountUnits, o.DiscountCurrency),
+		TotalAmount:     s.moneyToProto(o.TotalUnits, o.TotalCurrency),
+		PointsApplied:   o.PointsApplied,
 		ShippingAddress: s.addressToProto(o.ShippingAddress),
+		PaymentMethod:   orderpb.PaymentMethod(o.PaymentMethod),
 		CreatedAt:       protoTime(o.CreatedAt),
 		UpdatedAt:       protoTime(o.UpdatedAt),
 	}
 }
 
-func (s *OrderService) addressToProto(addr map[string]interface{}) *orderpb.Address {
+func (s *OrderService) orderItemToProto(i db.OrderItem) *orderpb.OrderItem {
+	return &orderpb.OrderItem{
+		Id:          i.Id.String(),
+		ProductId:   i.ProductId.String(),
+		VariantId:   i.VariantId,
+		ProductName: i.ProductName,
+		Quantity:    i.Quantity,
+		UnitPrice:   s.moneyToProto(i.UnitPriceUnits, i.UnitPriceCurrency),
+		TotalPrice:  s.moneyToProto(i.TotalPriceUnits, i.TotalPriceCurrency),
+	}
+}
+
+func (s *OrderService) moneyToProto(units int64, currency string) *sharedpb.Money {
+	return &sharedpb.Money{
+		Units:    units,
+		Currency: currency,
+	}
+}
+
+func (s *OrderService) addressToProto(addr map[string]interface{}) *orderpb.ShippingAddress {
+	return &orderpb.ShippingAddress{
+		Name:         getStr(addr, "name"),
+		Phone:        getStr(addr, "phone"),
+		PostalCode:   getStr(addr, "postal_code"),
+		Prefecture:   getStr(addr, "prefecture"),
+		City:         getStr(addr, "city"),
+		AddressLine1: getStr(addr, "address_line1"),
+		AddressLine2: getStr(addr, "address_line2"),
+	}
+}
+
+func (s *OrderService) addressToMap(addr *orderpb.ShippingAddress) map[string]interface{} {
 	if addr == nil {
-		return &orderpb.Address{}
+		return make(map[string]interface{})
 	}
 
-	address := &orderpb.Address{
-		Street:  getStr(addr, "street"),
-		City:    getStr(addr, "city"),
-		State:   getStr(addr, "state"),
-		Zip:     getStr(addr, "zip"),
-		Country: getStr(addr, "country"),
+	return map[string]interface{}{
+		"name":          addr.Name,
+		"phone":         addr.Phone,
+		"postal_code":   addr.PostalCode,
+		"prefecture":    addr.Prefecture,
+		"city":          addr.City,
+		"address_line1": addr.AddressLine1,
+		"address_line2": addr.AddressLine2,
 	}
-	return address
 }
 
 func getStr(m map[string]interface{}, key string) string {

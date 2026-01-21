@@ -75,6 +75,11 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+uv.lock
+.pytest_cache/
+.coverage
+.mypy_cache/
+.dmypy.json
 
 # Logs
 *.log

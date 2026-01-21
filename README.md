@@ -338,8 +338,26 @@ terraform plan
 terraform apply
 ```
 
+## 🚀 Quick Start
+
+**Get the platform running in 5 minutes!**
+
+```bash
+# Start all services (PostgreSQL, Redis, 7 microservices, Gateway)
+make up
+
+# Run integration tests
+make test-integration
+
+# Stop services
+make down
+```
+
+📖 **See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions**
+
 ## 📖 Documentation
 
+- [Quick Start Guide](QUICKSTART.md) - Get started in 5 minutes
 - [Architecture Overview](docs/architecture/overview.md)
 - [High-Level Design](docs/architecture/hld.md)
 - [Low-Level Design](docs/architecture/lld.md)

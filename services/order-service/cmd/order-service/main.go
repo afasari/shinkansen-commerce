@@ -1,14 +1,11 @@
 package main
 
 import (
-	"context"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	orderpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order"
 	productpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product"
@@ -25,12 +22,12 @@ import (
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		panic(err)
 	}
 
 	logger, err := zap.NewProduction()
 	if err != nil {
-		log.Fatalf("Failed to create logger: %v", err)
+		panic(err)
 	}
 	defer logger.Sync()
 

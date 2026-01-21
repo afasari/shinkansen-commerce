@@ -27,6 +27,7 @@ func (h *ProductHandler) RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/v1/products", h.handleProducts)
 	mux.HandleFunc("/v1/products/", h.handleProduct)
 	mux.HandleFunc("/v1/products/search", h.handleSearchProducts)
+	mux.HandleFunc("/v1/products/variants", h.handleProductVariants)
 }
 
 func (h *ProductHandler) handleProducts(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +129,45 @@ func (h *ProductHandler) handleSearchProducts(w http.ResponseWriter, r *http.Req
 		},
 	}
 
+	if minPrice := r.URL.Query().Get("min_price"); minPrice != "" {
+		if val, err := strconv.ParseInt(minPrice, 10, 64); err == nil {
+			req.MinPrice = &sharedpb.Money{
+				Units:    val,
+				Currency: "JPY",
+			}
+		}
+	}
+
+	if maxPrice := r.URL.Query().Get("max_price"); maxPrice != "" {
+		if val, err := strconv.ParseInt(maxPrice, 10, 64); err == nil {
+			req.MaxPrice = &sharedpb.Money{
+				Units:    val,
+				Currency: "JPY",
+			}
+		}
+	}
+
 	resp, err := h.client.SearchProducts(ctx, req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, resp)
+}
+
+func (h *ProductHandler) handleProductVariants(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	productID := r.URL.Query().Get("product_id")
+	if productID == "" {
+		http.Error(w, "Product ID is required", http.StatusBadRequest)
+		return
+	}
+
+	req := &productpb.GetProductVariantsRequest{ProductId: productID}
+
+	resp, err := h.client.GetProductVariants(ctx, req)
 	if err != nil {
 		handleError(w, err)
 		return

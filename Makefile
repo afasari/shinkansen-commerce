@@ -1,20 +1,20 @@
-.PHONY: help up down logs proto-gen sqlc-gen init-deps build test lint clean
+.PHONY: help up down logs proto-gen sqlc-gen init-deps build build-all test lint clean
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-# --- Infrastructure ---
+ # --- Infrastructure ---
 up: ## Start Infrastructure (Docker Compose)
-	docker-compose -f deploy/docker-compose.yml up -d
+	docker-compose up -d
 
 down: ## Stop Infrastructure
-	docker-compose -f deploy/docker-compose.yml down
+	docker-compose down
 
 logs: ## View Infrastructure Logs
-	docker-compose -f deploy/docker-compose.yml logs -f
+	docker-compose logs -f
 
 ps: ## Show running containers
-	docker-compose -f deploy/docker-compose.yml ps
+	docker-compose ps
 
 # --- Generation ---
 proto-gen: ## Generate gRPC code from protobufs
@@ -58,12 +58,47 @@ init-deps: ## Download all dependencies
 	cd services/user-service && go mod tidy
 	cd services/delivery-service && go mod tidy
 	cd services/shared/go && go mod tidy
-	@echo "📦 Installing Python dependencies..."
-	cd services/analytics-worker && pip install -r requirements.txt
 	@echo "✅ All dependencies installed"
 
-# --- Build ---
-build: ## Build all services
+init-go-deps: ## Install Go dependencies only
+	@echo "📦 Installing Go dependencies..."
+	cd services/gateway && go mod tidy
+	cd services/product-service && go mod tidy
+	cd services/order-service && go mod tidy
+	cd services/payment-service && go mod tidy
+	cd services/user-service && go mod tidy
+	cd services/delivery-service && go mod tidy
+	cd services/shared/go && go mod tidy
+	@echo "✅ Go dependencies installed"
+
+init-python-deps: uv-sync ## Install Python dependencies with uv
+	@echo "📦 Installing Python dependencies..."
+	cd services/analytics-worker && uv sync
+	@echo "✅ Python dependencies installed"
+
+uv-install: ## Install uv if not present
+	@command -v uv >/dev/null 2>&1 || (echo "📦 Installing uv..." && curl -LsSf https://astral.sh/uv/install.sh | sh)
+
+uv-sync: uv-install ## Sync Python dependencies using uv
+	@echo "📦 Syncing Python dependencies with uv..."
+	cd services/analytics-worker && uv sync
+
+uv-add: uv-install ## Add Python package (usage: make uv-add PACKAGE=<name>)
+	@if [ -z "$(PACKAGE)" ]; then echo "Usage: make uv-add PACKAGE=<package-name>"; exit 1; fi
+	cd services/analytics-worker && uv add $(PACKAGE)
+
+uv-add-dev: uv-install ## Add Python dev package (usage: make uv-add-dev PACKAGE=<name>)
+	@if [ -z "$(PACKAGE)" ]; then echo "Usage: make uv-add-dev PACKAGE=<package-name>"; exit 1; fi
+	cd services/analytics-worker && uv add --dev $(PACKAGE)
+
+uv-run: uv-install ## Run Python command (usage: make uv-run CMD=<command>)
+	@if [ -z "$(CMD)" ]; then echo "Usage: make uv-run CMD=<command>"; exit 1; fi
+	cd services/analytics-worker && uv run $(CMD)
+
+ # --- Build ---
+build-all: ## Build all Go services
+	@echo "🔨 Building all services..."
+	@mkdir -p bin
 	@echo "🔨 Building Gateway..."
 	cd services/gateway && go build -o ../../bin/gateway ./cmd/gateway
 	@echo "🔨 Building Product Service..."
@@ -76,18 +111,58 @@ build: ## Build all services
 	cd services/user-service && go build -o ../../bin/user-service ./cmd/user-service
 	@echo "🔨 Building Delivery Service..."
 	cd services/delivery-service && go build -o ../../bin/delivery-service ./cmd/delivery-service
-	@echo "🔨 Building Inventory Service (Rust)..."
-	cd services/inventory-service && cargo build --release
-	@echo "✅ All services built"
+	@echo "🔨 Building Inventory Service..."
+	cd services/inventory-service && go build -o ../../bin/inventory-service ./cmd/inventory-service
+	@echo "✅ All services built to bin/"
+
+build: build-all ## Build all services (alias)
 
 build-gateway: ## Build Gateway only
+	@mkdir -p bin
 	cd services/gateway && go build -o ../../bin/gateway ./cmd/gateway
+	@echo "✅ Gateway built to bin/gateway"
 
 build-product: ## Build Product Service only
+	@mkdir -p bin
 	cd services/product-service && go build -o ../../bin/product-service ./cmd/product-service
+	@echo "✅ Product Service built to bin/product-service"
 
 build-order: ## Build Order Service only
+	@mkdir -p bin
 	cd services/order-service && go build -o ../../bin/order-service ./cmd/order-service
+	@echo "✅ Order Service built to bin/order-service"
+
+build-user: ## Build User Service only
+	@mkdir -p bin
+	cd services/user-service && go build -o ../../bin/user-service ./cmd/user-service
+	@echo "✅ User Service built to bin/user-service"
+
+build-payment: ## Build Payment Service only
+	@mkdir -p bin
+	cd services/payment-service && go build -o ../../bin/payment-service ./cmd/payment-service
+	@echo "✅ Payment Service built to bin/payment-service"
+
+build-inventory: ## Build Inventory Service only
+	@mkdir -p bin
+	cd services/inventory-service && go build -o ../../bin/inventory-service ./cmd/inventory-service
+	@echo "✅ Inventory Service built to bin/inventory-service"
+
+build-delivery: ## Build Delivery Service only
+	@mkdir -p bin
+	cd services/delivery-service && go build -o ../../bin/delivery-service ./cmd/delivery-service
+	@echo "✅ Delivery Service built to bin/delivery-service"
+
+load-test: ## Run load test for product service (10K concurrent reads)
+	@echo "🚀 Running load test (10K concurrent reads)..."
+	cd services/product-service && go run cmd/load-test/main.go
+
+benchmark-cache: ## Run cache performance benchmark
+	@echo "📊 Running cache benchmark..."
+	cd services/product-service && go run cmd/load-test/main.go benchmark
+
+build-python: uv-sync ## Build/Package Python analytics worker
+	@echo "🐍 Building Python analytics worker..."
+	cd services/analytics-worker && uv pip compile pyproject.toml -o requirements.txt
 
 # --- Test ---
 test: ## Run all tests
@@ -112,6 +187,14 @@ test-coverage: ## Run tests with coverage
 	cd services/product-service && go test -coverprofile=coverage.out ./...
 	cd services/order-service && go test -coverprofile=coverage.out ./...
 
+test-integration: ## Run integration tests (requires infrastructure)
+	@echo "🔧 Running integration tests..."
+	@./scripts/run-integration-tests.sh
+
+test-python: uv-install ## Run Python tests
+	@echo "🧪 Running Python tests..."
+	cd services/analytics-worker && uv run pytest
+
 # --- Lint ---
 lint: ## Run linters
 	@echo "🔍 Linting Go code..."
@@ -124,7 +207,17 @@ lint: ## Run linters
 	@echo "🔍 Linting Rust code..."
 	cd services/inventory-service && cargo clippy
 	@echo "🔍 Linting Python code..."
-	cd services/analytics-worker && ruff check .
+	cd services/analytics-worker && uv run ruff check .
+	cd services/analytics-worker && uv run ruff format --check .
+
+lint-python: uv-install ## Lint Python code only
+	@echo "🔍 Linting Python code..."
+	cd services/analytics-worker && uv run ruff check .
+	cd services/analytics-worker && uv run ruff format --check .
+
+format-python: uv-install ## Format Python code
+	@echo "✨ Formatting Python code..."
+	cd services/analytics-worker && uv run ruff format .
 
 # --- Database ---
 db-migrate: ## Run database migrations
@@ -153,6 +246,7 @@ docker-build: ## Build Docker images
 	docker build -t shinkansen/user-service:latest -f services/user-service/Dockerfile .
 	docker build -t shinkansen/delivery-service:latest -f services/delivery-service/Dockerfile .
 	docker build -t shinkansen/inventory-service:latest -f services/inventory-service/Dockerfile .
+	docker build -t shinkansen/analytics-worker:latest -f services/analytics-worker/Dockerfile .
 	@echo "✅ Docker images built"
 
 docker-push: docker-build ## Push Docker images
@@ -163,6 +257,7 @@ docker-push: docker-build ## Push Docker images
 	docker push shinkansen/user-service:latest
 	docker push shinkansen/delivery-service:latest
 	docker push shinkansen/inventory-service:latest
+	docker push shinkansen/analytics-worker:latest
 
 # --- Kubernetes ---
 k8s-apply: ## Apply Kubernetes manifests
@@ -178,7 +273,6 @@ k8s-logs: ## View Kubernetes logs
 clean: ## Clean build artifacts
 	rm -rf bin/
 	rm -f services/*/coverage.out
-	cd services/inventory-service && cargo clean
 	@echo "✅ Cleaned build artifacts"
 
 clean-all: clean ## Clean everything including generated code

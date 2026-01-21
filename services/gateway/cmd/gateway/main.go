@@ -23,10 +23,14 @@ var (
 )
 
 func main() {
-	logger, _ = zap.NewProduction()
+	var err error
+	logger, err = zap.NewProduction()
+	if err != nil {
+		log.Fatalf("Failed to create logger: %v", err)
+	}
 	defer logger.Sync()
 
-	cfg, err := config.Load()
+	cfg, err = config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
@@ -34,15 +38,45 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	conn, err := grpc.NewClient(cfg.GRPCServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	productConn, err := grpc.NewClient(cfg.ProductServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		logger.Fatal("Failed to dial gRPC server", zap.Error(err))
+		logger.Fatal("Failed to dial product service", zap.Error(err))
 	}
-	defer conn.Close()
+	defer productConn.Close()
+
+	orderConn, err := grpc.NewClient(cfg.OrderServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatal("Failed to dial order service", zap.Error(err))
+	}
+	defer orderConn.Close()
+
+	userConn, err := grpc.NewClient(cfg.UserServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatal("Failed to dial user service", zap.Error(err))
+	}
+	defer userConn.Close()
+
+	paymentConn, err := grpc.NewClient(cfg.PaymentServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatal("Failed to dial payment service", zap.Error(err))
+	}
+	defer paymentConn.Close()
+
+	inventoryConn, err := grpc.NewClient(cfg.InventoryServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatal("Failed to dial inventory service", zap.Error(err))
+	}
+	defer inventoryConn.Close()
+
+	deliveryConn, err := grpc.NewClient(cfg.DeliveryServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatal("Failed to dial delivery service", zap.Error(err))
+	}
+	defer deliveryConn.Close()
 
 	mux := http.NewServeMux()
 
-	if err := handler.RegisterHandlers(ctx, mux, conn); err != nil {
+	if err := handler.RegisterHandlers(ctx, mux, productConn, orderConn, userConn, paymentConn, inventoryConn, deliveryConn); err != nil {
 		logger.Fatal("Failed to register handlers", zap.Error(err))
 	}
 
@@ -59,8 +93,7 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("Starting HTTP gateway",
-			zap.String("address", cfg.HTTPServerAddress))
+		logger.Info("Starting HTTP gateway", zap.String("address", cfg.HTTPServerAddress))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("HTTP gateway failed", zap.Error(err))
 		}
@@ -73,6 +106,7 @@ func main() {
 	logger.Info("Shutting down HTTP gateway...")
 	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer shutdownCancel()
+
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Error("Failed to shutdown gracefully", zap.Error(err))
 	}
