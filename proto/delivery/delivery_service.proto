@@ -4,12 +4,34 @@ package shinkansen.delivery;
 
 import "shared/common.proto";
 import "delivery/delivery_messages.proto";
+import "google/api/annotations.proto";
 
 option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/delivery";
 
 service DeliveryService {
-  rpc GetDeliverySlots(GetDeliverySlotsRequest) returns (GetDeliverySlotsResponse);
-  rpc ReserveDeliverySlot(ReserveDeliverySlotRequest) returns (ReserveDeliverySlotResponse);
-  rpc GetShipment(GetShipmentRequest) returns (GetShipmentResponse);
-  rpc UpdateShipmentStatus(UpdateShipmentStatusRequest) returns (shinkansen.common.Empty);
+  rpc GetDeliverySlots(GetDeliverySlotsRequest) returns (GetDeliverySlotsResponse) {
+    option (google.api.http) = {
+      get: "/v1/delivery/slots"
+    };
+  }
+  
+  rpc ReserveDeliverySlot(ReserveDeliverySlotRequest) returns (ReserveDeliverySlotResponse) {
+    option (google.api.http) = {
+      post: "/v1/delivery/slots/{slot_id}"
+      body: "*"
+    };
+  }
+  
+  rpc GetShipment(GetShipmentRequest) returns (GetShipmentResponse) {
+    option (google.api.http) = {
+      get: "/v1/shipments/{shipment_id}"
+    };
+  }
+  
+  rpc UpdateShipmentStatus(UpdateShipmentStatusRequest) returns (shinkansen.common.Empty) {
+    option (google.api.http) = {
+      put: "/v1/shipments/{shipment_id}/status"
+      body: "*"
+    };
+  }
 }

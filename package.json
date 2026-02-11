@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "markdown-it-mermaid-plugin": "^0.1.0",
+    "vitepress": "^1.6.4"
+  }
+}

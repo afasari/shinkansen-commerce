@@ -17,19 +17,25 @@ ps: ## Show running containers
 	docker-compose ps
 
 # --- Generation ---
-proto-gen: ## Generate gRPC code from protobufs
+ proto-gen: ## Generate gRPC code from protobufs
 	@echo "🔄 Generating Go protobuf code..."
 	@mkdir -p gen/proto/go
 	buf generate --template proto/buf.gen.yaml
 	@echo "✅ Go protobuf code generated"
 
-proto-lint: ## Lint protobuf files
+ proto-openapi-gen: ## Generate OpenAPI docs from protobufs
+	@echo "📝 Generating OpenAPI docs..."
+	@mkdir -p services/gateway/docs/api
+	buf generate --template proto/buf.openapi.gen.yaml
+	@echo "✅ OpenAPI docs generated"
+
+ proto-lint: ## Lint protobuf files
 	buf lint proto
 
-proto-format: ## Format protobuf files
+ proto-format: ## Format protobuf files
 	buf format -w proto
 
-sqlc-gen: ## Generate SQL code for Go services
+ sqlc-gen: ## Generate SQL code for Go services
 	@echo "🔄 Generating SQL code for Product Service..."
 	cd services/product-service && sqlc generate
 	@echo "✅ Product Service SQL generated"
@@ -46,7 +52,7 @@ sqlc-gen: ## Generate SQL code for Go services
 	cd services/delivery-service && sqlc generate
 	@echo "✅ Delivery Service SQL generated"
 
-gen: proto-gen sqlc-gen ## Generate all code (protobuf + sqlc)
+ gen: proto-gen sqlc-gen proto-openapi-gen ## Generate all code (protobuf + sqlc + openapi)
 
 # --- Dependencies ---
 init-deps: ## Download all dependencies

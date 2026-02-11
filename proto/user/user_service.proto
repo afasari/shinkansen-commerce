@@ -4,16 +4,61 @@ package shinkansen.user;
 
 import "shared/common.proto";
 import "user/user_messages.proto";
+import "google/api/annotations.proto";
 
 option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/user";
 
 service UserService {
-  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
-  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
-  rpc GetUser(GetUserRequest) returns (GetUserResponse);
-  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
-  rpc AddAddress(AddAddressRequest) returns (AddAddressResponse);
-  rpc ListAddresses(ListAddressesRequest) returns (ListAddressesResponse);
-  rpc UpdateAddress(UpdateAddressRequest) returns (UpdateAddressResponse);
-  rpc DeleteAddress(DeleteAddressRequest) returns (shinkansen.common.Empty);
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/register"
+      body: "*"
+    };
+  }
+  
+  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/login"
+      body: "*"
+    };
+  }
+  
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/{user_id}"
+    };
+  }
+  
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
+    option (google.api.http) = {
+      put: "/v1/users/{user_id}"
+      body: "*"
+    };
+  }
+  
+  rpc AddAddress(AddAddressRequest) returns (AddAddressResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/{user_id}/addresses"
+      body: "*"
+    };
+  }
+  
+  rpc ListAddresses(ListAddressesRequest) returns (ListAddressesResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/{user_id}/addresses"
+    };
+  }
+  
+  rpc UpdateAddress(UpdateAddressRequest) returns (UpdateAddressResponse) {
+    option (google.api.http) = {
+      put: "/v1/users/{user_id}/addresses/{address_id}"
+      body: "*"
+    };
+  }
+  
+  rpc DeleteAddress(DeleteAddressRequest) returns (shinkansen.common.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/users/{user_id}/addresses/{address_id}"
+    };
+  }
 }

@@ -4,12 +4,35 @@ package shinkansen.payment;
 
 import "shared/common.proto";
 import "payment/payment_messages.proto";
+import "google/api/annotations.proto";
 
 option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/payment";
 
 service PaymentService {
-  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
-  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
-  rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse);
-  rpc RefundPayment(RefundPaymentRequest) returns (shinkansen.common.Empty);
+  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/payments"
+      body: "*"
+    };
+  }
+  
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse) {
+    option (google.api.http) = {
+      get: "/v1/payments/{payment_id}"
+    };
+  }
+  
+  rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/payments/{payment_id}/process"
+      body: "*"
+    };
+  }
+  
+  rpc RefundPayment(RefundPaymentRequest) returns (shinkansen.common.Empty) {
+    option (google.api.http) = {
+      post: "/v1/payments/{payment_id}/refund"
+      body: "*"
+    };
+  }
 }

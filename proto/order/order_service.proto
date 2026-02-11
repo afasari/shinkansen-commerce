@@ -4,15 +4,54 @@ package shinkansen.order;
 
 import "shared/common.proto";
 import "order/order_messages.proto";
+import "google/api/annotations.proto";
 
 option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order";
 
 service OrderService {
-  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
-  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
-  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
-  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (shinkansen.common.Empty);
-  rpc CancelOrder(CancelOrderRequest) returns (shinkansen.common.Empty);
-  rpc ApplyPoints(ApplyPointsRequest) returns (ApplyPointsResponse);
-  rpc ReserveDeliverySlot(ReserveDeliverySlotRequest) returns (ReserveDeliverySlotResponse);
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {
+    option (google.api.http) = {
+      post: "/v1/orders"
+      body: "*"
+    };
+  }
+  
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {
+    option (google.api.http) = {
+      get: "/v1/orders/{order_id}"
+    };
+  }
+  
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
+    option (google.api.http) = {
+      get: "/v1/orders"
+    };
+  }
+  
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (shinkansen.common.Empty) {
+    option (google.api.http) = {
+      post: "/v1/orders/{order_id}/status"
+      body: "*"
+    };
+  }
+  
+  rpc CancelOrder(CancelOrderRequest) returns (shinkansen.common.Empty) {
+    option (google.api.http) = {
+      post: "/v1/orders/{order_id}/cancel"
+    };
+  }
+  
+  rpc ApplyPoints(ApplyPointsRequest) returns (ApplyPointsResponse) {
+    option (google.api.http) = {
+      post: "/v1/orders/{order_id}/apply-points"
+      body: "*"
+    };
+  }
+  
+  rpc ReserveDeliverySlot(ReserveDeliverySlotRequest) returns (ReserveDeliverySlotResponse) {
+    option (google.api.http) = {
+      post: "/v1/orders/{order_id}/reserve-delivery-slot"
+      body: "*"
+    };
+  }
 }
