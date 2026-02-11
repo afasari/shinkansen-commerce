@@ -80,7 +80,7 @@ func main() {
 		logger.Fatal("Failed to register handlers", zap.Error(err))
 	}
 
-	swaggerHandler := http.StripPrefix("/swagger/", http.FileServer(http.Dir("./docs/api/swagger")))
+	swaggerHandler := http.StripPrefix("/swagger/", http.FileServer(http.Dir("/docs/api")))
 	mux.Handle("/swagger/", swaggerHandler)
 	mux.HandleFunc("/docs", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/swagger/index.html", http.StatusMovedPermanently)
