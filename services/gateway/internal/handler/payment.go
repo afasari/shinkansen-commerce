@@ -22,8 +22,6 @@ func NewPaymentHandler(conn *grpc.ClientConn) *PaymentHandler {
 func (h *PaymentHandler) RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/v1/payments", h.handlePayments)
 	mux.HandleFunc("/v1/payments/", h.handlePayment)
-	mux.HandleFunc("/v1/payments/", h.handlePaymentProcess)
-	mux.HandleFunc("/v1/payments/", h.handlePaymentRefund)
 }
 
 func (h *PaymentHandler) handlePayments(w http.ResponseWriter, r *http.Request) {

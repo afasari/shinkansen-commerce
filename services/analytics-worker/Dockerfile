@@ -11,6 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 # Copy project files
 COPY services/analytics-worker/pyproject.toml .
+COPY services/analytics-worker/README.md .
 COPY services/analytics-worker/analytics_worker ./analytics_worker
 
 # Create virtual environment and install dependencies
