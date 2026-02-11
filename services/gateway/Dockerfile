@@ -15,8 +15,10 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-COPY --from=builder /app/gateway .
+ COPY --from=builder /app/gateway .
+ COPY --from=builder /app/docs/api/swagger.yaml /root/docs/api/swagger.yaml
+ COPY --from=builder /app/docs/api/index.html /root/docs/api/index.html
 
-EXPOSE 8080
+ EXPOSE 8080
 
-CMD ["./gateway"]
+ CMD ["./gateway"]
