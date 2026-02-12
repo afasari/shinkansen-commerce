@@ -30,8 +30,18 @@ jobs:
       - name: Generate protobuf code
         run: make proto-gen
 
-      - name: Download Go dependencies
-        run: go mod download
+      - name: Download Go dependencies for each service
+        run: |
+          cd services/gateway && go mod download
+          cd services/product-service && go mod download
+          cd services/order-service && go mod download
+          cd services/payment-service && go mod download
+          cd services/user-service && go mod download
+          cd services/delivery-service && go mod download
+          cd services/shared/go && go mod download
+
+      - name: Verify Go dependencies
+        run: go list -m all
 
       - name: Install golangci-lint
         run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
