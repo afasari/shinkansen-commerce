@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	deliverypb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/delivery"
+	deliverypb "github.com/afasari/shinkansen-commerce/gen/proto/go/delivery"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

@@ -1,7 +1,7 @@
 version: v1
-name: buf.build/shinkansen/shinkansen-commerce
+name: buf.build/afasari/shinkansen-commerce
 deps:
-  - buf.build/googleapis/googleapis:latest
+  - buf.build/googleapis/googleapis:5490878a59094c9f6d6c3b46e22a0d1e
 lint:
   use:
     - DEFAULT

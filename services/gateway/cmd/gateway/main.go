@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/shinkansen-commerce/shinkansen/services/gateway/internal/config"
-	"github.com/shinkansen-commerce/shinkansen/services/gateway/internal/handler"
-	"github.com/shinkansen-commerce/shinkansen/services/gateway/internal/middleware"
+	"github.com/afasari/shinkansen-commerce/services/gateway/internal/config"
+	"github.com/afasari/shinkansen-commerce/services/gateway/internal/handler"
+	"github.com/afasari/shinkansen-commerce/services/gateway/internal/middleware"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

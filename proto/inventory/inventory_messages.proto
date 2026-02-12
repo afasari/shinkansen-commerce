@@ -5,7 +5,7 @@ package shinkansen.inventory;
 import "shared/common.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/inventory";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/inventory";
 
 message StockItem {
   string id = 1;
@@ -37,9 +37,10 @@ enum MovementType {
 }
 
 message GetStockRequest {
-  string product_id = 1;
-  string variant_id = 2;
-  string warehouse_id = 3;
+  string stock_item_id = 1;
+  string product_id = 2;
+  string variant_id = 3;
+  string warehouse_id = 4;
 }
 
 message GetStockResponse {
@@ -70,12 +71,13 @@ message ReleaseStockRequest {
 }
 
 message UpdateStockRequest {
-  string product_id = 1;
-  string variant_id = 2;
-  string warehouse_id = 3;
-  int32 quantity_delta = 4;
-  string reason = 5;
-  string reference = 6;
+  string stock_item_id = 1;
+  string product_id = 2;
+  string variant_id = 3;
+  string warehouse_id = 4;
+  int32 quantity_delta = 5;
+  string reason = 6;
+  string reference = 7;
 }
 
 message GetStockMovementsRequest {

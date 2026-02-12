@@ -6,7 +6,7 @@ import "shared/common.proto";
 import "user/user_messages.proto";
 import "google/api/annotations.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/user";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/user";
 
 service UserService {
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse) {

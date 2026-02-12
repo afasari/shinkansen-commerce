@@ -6,7 +6,7 @@ import "shared/common.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/user";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/user";
 
 message User {
   string id = 1;
@@ -99,15 +99,16 @@ message ListAddressesResponse {
 }
 
 message UpdateAddressRequest {
-  string address_id = 1;
-  google.protobuf.StringValue name = 2;
-  google.protobuf.StringValue phone = 3;
-  google.protobuf.StringValue postal_code = 4;
-  google.protobuf.StringValue prefecture = 5;
-  google.protobuf.StringValue city = 6;
-  google.protobuf.StringValue address_line1 = 7;
-  google.protobuf.StringValue address_line2 = 8;
-  google.protobuf.BoolValue is_default = 9;
+  string user_id = 1;
+  string address_id = 2;
+  google.protobuf.StringValue name = 3;
+  google.protobuf.StringValue phone = 4;
+  google.protobuf.StringValue postal_code = 5;
+  google.protobuf.StringValue prefecture = 6;
+  google.protobuf.StringValue city = 7;
+  google.protobuf.StringValue address_line1 = 8;
+  google.protobuf.StringValue address_line2 = 9;
+  google.protobuf.BoolValue is_default = 10;
 }
 
 message UpdateAddressResponse {
@@ -115,5 +116,6 @@ message UpdateAddressResponse {
 }
 
 message DeleteAddressRequest {
-  string address_id = 1;
+  string user_id = 1;
+  string address_id = 2;
 }

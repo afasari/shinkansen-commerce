@@ -1,17 +1,17 @@
-module github.com/shinkansen-commerce/shinkansen/services/user-service
+module github.com/afasari/shinkansen-commerce/services/user-service
 
 go 1.24.0
 
 toolchain go1.24.9
 
-replace github.com/shinkansen-commerce/shinkansen/gen/proto/go => ../../gen/proto/go
+replace github.com/afasari/shinkansen-commerce/gen/proto/go => ../../gen/proto/go
 
 require (
+	github.com/afasari/shinkansen-commerce/gen/proto/go v0.0.0-00010101000000-000000000000
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/redis/go-redis/v9 v9.17.2
-	github.com/shinkansen-commerce/shinkansen/gen/proto/go v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.47.0
@@ -34,6 +34,7 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251029180050-ab9386a59fda // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260114163908-3f89685c29c3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

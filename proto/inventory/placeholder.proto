@@ -2,4 +2,4 @@ syntax = "proto3";
 
 package shinkansen.inventory;
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/inventory";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/inventory";

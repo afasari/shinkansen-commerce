@@ -1,15 +1,15 @@
-module github.com/shinkansen-commerce/shinkansen/services/inventory-service
+module github.com/afasari/shinkansen-commerce/services/inventory-service
 
 go 1.24.0
 
 toolchain go1.24.9
 
-replace github.com/shinkansen-commerce/shinkansen/gen/proto/go => ../../gen/proto/go
+replace github.com/afasari/shinkansen-commerce/gen/proto/go => ../../gen/proto/go
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
-	github.com/shinkansen-commerce/shinkansen/gen/proto/go v0.0.0-00010101000000-000000000000
+	github.com/afasari/shinkansen-commerce/gen/proto/go v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.27.1
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11

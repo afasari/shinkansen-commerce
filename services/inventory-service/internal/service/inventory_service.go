@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	inventorypb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/inventory"
-	sharedpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/shared"
-	"github.com/shinkansen-commerce/shinkansen/services/inventory-service/internal/db"
+	inventorypb "github.com/afasari/shinkansen-commerce/gen/proto/go/inventory"
+	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
+	"github.com/afasari/shinkansen-commerce/services/inventory-service/internal/db"
 	"go.uber.org/zap"
 )
 

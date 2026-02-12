@@ -6,7 +6,7 @@ import "shared/common.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/product";
 
 message Product {
   string id = 1;

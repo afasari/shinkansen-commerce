@@ -1,10 +1,10 @@
-.PHONY: help up down logs proto-gen sqlc-gen init-deps build build-all test lint clean
+.PHONY: help up down logs ps proto-gen proto-openapi-gen proto-lint proto-format sqlc-gen gen init-deps init-go-deps init-python-deps uv-install uv-sync uv-add uv-add-dev uv-run build-all build build-gateway build-product build-order build-user build-payment build-inventory build-delivery load-test benchmark-cache build-python test test-coverage test-integration test-python lint lint-python format-python db-migrate db-rollback docker-build docker-push k8s-apply k8s-delete k8s-logs clean clean-all
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
- # --- Infrastructure ---
-up: ## Start Infrastructure (Docker Compose)
+# --- Infrastructure ---
+up: gen ## Start Infrastructure (Docker Compose)
 	docker compose up -d
 
 down: ## Stop Infrastructure
@@ -20,13 +20,13 @@ ps: ## Show running containers
  proto-gen: ## Generate gRPC code from protobufs
 	@echo "🔄 Generating Go protobuf code..."
 	@mkdir -p gen/proto/go
-	buf generate --template proto/buf.gen.yaml
+	protoc --proto_path=/tmp/googleapis --proto_path=proto --go_out=gen/proto/go --go_opt=paths=source_relative --go-grpc_out=gen/proto/go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/**/*.proto
 	@echo "✅ Go protobuf code generated"
 
  proto-openapi-gen: ## Generate OpenAPI docs from protobufs
 	@echo "📝 Generating OpenAPI docs..."
 	@mkdir -p services/gateway/docs/api
-	buf generate --template proto/buf.openapi.gen.yaml
+	protoc --proto_path=/tmp/googleapis --proto_path=proto --openapiv2_out=services/gateway/docs/api --openapiv2_opt=json_names_for_fields=false,allow_merge=true,merge_file_name=swagger,output_format=yaml proto/**/*.proto
 	@echo "✅ OpenAPI docs generated"
 
  proto-lint: ## Lint protobuf files
@@ -52,7 +52,7 @@ ps: ## Show running containers
 	cd services/delivery-service && sqlc generate
 	@echo "✅ Delivery Service SQL generated"
 
- gen: proto-gen sqlc-gen proto-openapi-gen ## Generate all code (protobuf + sqlc + openapi)
+ gen: proto-gen proto-openapi-gen ## Generate all code (protobuf + sqlc + openapi)
 
 # --- Dependencies ---
 init-deps: ## Download all dependencies
@@ -65,25 +65,6 @@ init-deps: ## Download all dependencies
 	cd services/delivery-service && go mod tidy
 	cd services/shared/go && go mod tidy
 	@echo "✅ All dependencies installed"
-
-init-go-deps: ## Install Go dependencies only
-	@echo "📦 Installing Go dependencies..."
-	cd services/gateway && go mod tidy
-	cd services/product-service && go mod tidy
-	cd services/order-service && go mod tidy
-	cd services/payment-service && go mod tidy
-	cd services/user-service && go mod tidy
-	cd services/delivery-service && go mod tidy
-	cd services/shared/go && go mod tidy
-	@echo "✅ Go dependencies installed"
-
-init-python-deps: uv-sync ## Install Python dependencies with uv
-	@echo "📦 Installing Python dependencies..."
-	cd services/analytics-worker && uv sync
-	@echo "✅ Python dependencies installed"
-
-uv-install: ## Install uv if not present
-	@command -v uv >/dev/null 2>&1 || (echo "📦 Installing uv..." && curl -LsSf https://astral.sh/uv/install.sh | sh)
 
 uv-sync: uv-install ## Sync Python dependencies using uv
 	@echo "📦 Syncing Python dependencies with uv..."
@@ -101,7 +82,7 @@ uv-run: uv-install ## Run Python command (usage: make uv-run CMD=<command>)
 	@if [ -z "$(CMD)" ]; then echo "Usage: make uv-run CMD=<command>"; exit 1; fi
 	cd services/analytics-worker && uv run $(CMD)
 
- # --- Build ---
+# --- Build ---
 build-all: ## Build all Go services
 	@echo "🔨 Building all services..."
 	@mkdir -p bin

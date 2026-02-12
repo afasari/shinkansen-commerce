@@ -2,7 +2,7 @@ version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/shinkansen-commerce/shinkansen/gen/proto/go
+    default: github.com/afasari/shinkansen-commerce/gen/proto/go
 
 plugins:
   - name: go

@@ -6,7 +6,7 @@ import "shared/common.proto";
 import "delivery/delivery_messages.proto";
 import "google/api/annotations.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/delivery";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/delivery";
 
 service DeliveryService {
   rpc GetDeliverySlots(GetDeliverySlotsRequest) returns (GetDeliverySlotsResponse) {

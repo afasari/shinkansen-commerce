@@ -10,12 +10,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	userpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/user"
+	userpb "github.com/afasari/shinkansen-commerce/gen/proto/go/user"
 
-	sharedpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/shared"
-	"github.com/shinkansen-commerce/shinkansen/services/user-service/internal/cache"
-	"github.com/shinkansen-commerce/shinkansen/services/user-service/internal/config"
-	"github.com/shinkansen-commerce/shinkansen/services/user-service/internal/db"
+	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
+	"github.com/afasari/shinkansen-commerce/services/user-service/internal/cache"
+	"github.com/afasari/shinkansen-commerce/services/user-service/internal/config"
+	"github.com/afasari/shinkansen-commerce/services/user-service/internal/db"
 	"go.uber.org/zap"
 )
 

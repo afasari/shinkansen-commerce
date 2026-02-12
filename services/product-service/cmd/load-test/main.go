@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	productpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product"
+	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

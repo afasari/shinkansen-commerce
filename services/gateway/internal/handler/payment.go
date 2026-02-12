@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	paymentpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/payment"
+	paymentpb "github.com/afasari/shinkansen-commerce/gen/proto/go/payment"
 	"google.golang.org/grpc"
 )
 

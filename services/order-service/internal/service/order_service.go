@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	orderpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order"
-	productpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product"
-	sharedpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/shared"
-	"github.com/shinkansen-commerce/shinkansen/services/order-service/internal/cache"
-	"github.com/shinkansen-commerce/shinkansen/services/order-service/internal/db"
+	orderpb "github.com/afasari/shinkansen-commerce/gen/proto/go/order"
+	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
+	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
+	"github.com/afasari/shinkansen-commerce/services/order-service/internal/cache"
+	"github.com/afasari/shinkansen-commerce/services/order-service/internal/db"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

@@ -6,18 +6,18 @@ import "shared/common.proto";
 import "inventory/inventory_messages.proto";
 import "google/api/annotations.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/inventory";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/inventory";
 
 service InventoryService {
   rpc GetStock(GetStockRequest) returns (GetStockResponse) {
     option (google.api.http) = {
-      get: "/v1/inventory/stock/{stock_item_id}"
+      get: "/v1/inventory/stock"
     };
   }
   
   rpc UpdateStock(UpdateStockRequest) returns (shinkansen.common.Empty) {
     option (google.api.http) = {
-      put: "/v1/inventory/stock/{stock_item_id}"
+      put: "/v1/inventory/stock"
       body: "*"
     };
   }

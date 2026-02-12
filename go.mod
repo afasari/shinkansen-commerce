@@ -1,4 +1,4 @@
-module github.com/shinkansen-commerce/shinkansen
+module github.com/afasari/shinkansen-commerce
 
 go 1.24.0
 

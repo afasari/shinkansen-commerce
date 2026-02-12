@@ -5,7 +5,7 @@ package shinkansen.payment;
 import "shared/common.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/payment";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/payment";
 
 service KonbiniService {
   rpc GeneratePaymentSlip(GeneratePaymentSlipRequest) returns (GeneratePaymentSlipResponse);

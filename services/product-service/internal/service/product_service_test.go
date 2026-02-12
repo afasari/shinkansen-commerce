@@ -12,10 +12,10 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	productpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product"
-	sharedpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/shared"
-	"github.com/shinkansen-commerce/shinkansen/services/product-service/internal/cache"
-	"github.com/shinkansen-commerce/shinkansen/services/product-service/internal/db"
+	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
+	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
+	"github.com/afasari/shinkansen-commerce/services/product-service/internal/cache"
+	"github.com/afasari/shinkansen-commerce/services/product-service/internal/db"
 )
 
 func setupTestService(t *testing.T) (*ProductService, *db.MockQuerier, *cache.MockCache) {

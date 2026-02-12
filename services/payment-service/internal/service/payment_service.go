@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	paymentpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/payment"
-	sharedpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/shared"
-	"github.com/shinkansen-commerce/shinkansen/services/payment-service/internal/cache"
-	"github.com/shinkansen-commerce/shinkansen/services/payment-service/internal/db"
+	paymentpb "github.com/afasari/shinkansen-commerce/gen/proto/go/payment"
+	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
+	"github.com/afasari/shinkansen-commerce/services/payment-service/internal/cache"
+	"github.com/afasari/shinkansen-commerce/services/payment-service/internal/db"
 	"go.uber.org/zap"
 )
 

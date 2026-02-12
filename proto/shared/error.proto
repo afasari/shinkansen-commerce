@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package shinkansen.common;
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/common";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/shared";
 
 message Error {
   string code = 1;

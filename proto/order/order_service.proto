@@ -6,7 +6,7 @@ import "shared/common.proto";
 import "order/order_messages.proto";
 import "google/api/annotations.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/order";
 
 service OrderService {
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {

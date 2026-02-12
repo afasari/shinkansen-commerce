@@ -130,8 +130,8 @@ package main
 import (
     "context"
     "log"
-    productpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/product"
-    sharedpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/shared"
+    productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
+    sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
     "google.golang.org/grpc"
 )
 

@@ -5,7 +5,7 @@ package shinkansen.common;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
-option go_package = "github.com/shinkansen-commerce/shinkansen/gen/proto/go/common";
+option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/shared";
 
 message Money {
   string currency = 1;

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	orderpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/order"
-	sharedpb "github.com/shinkansen-commerce/shinkansen/gen/proto/go/shared"
+	orderpb "github.com/afasari/shinkansen-commerce/gen/proto/go/order"
+	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
