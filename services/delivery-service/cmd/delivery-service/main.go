@@ -28,14 +28,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	ctx := context.Background()
 	dbpool, err := db.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
-	defer dbpool.Close()
+	defer func() { _ = dbpool.Close() }()
 
 	queries := db.NewQueries(dbpool)
 	deliveryService := service.NewDeliveryService(queries, logger)
@@ -59,7 +59,7 @@ func main() {
 	metricsMux := http.NewServeMux()
 	metricsMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	go func() {

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	orderpb "github.com/afasari/shinkansen-commerce/gen/proto/go/order"
 	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
 	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/cache"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/db"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -145,10 +145,8 @@ func (s *OrderService) GetOrder(ctx context.Context, req *orderpb.GetOrderReques
 	}
 
 	orderProto := s.orderToProto(order)
-	if orderItems != nil {
-		for _, item := range orderItems {
-			orderProto.Items = append(orderProto.Items, s.orderItemToProto(item))
-		}
+	for _, item := range orderItems {
+		orderProto.Items = append(orderProto.Items, s.orderItemToProto(item))
 	}
 
 	return &orderpb.GetOrderResponse{
@@ -263,7 +261,7 @@ func (s *OrderService) ReserveDeliverySlot(ctx context.Context, req *orderpb.Res
 		return nil, fmt.Errorf("delivery slot ID is required")
 	}
 
-	reservationID := fmt.Sprintf("RES-%d", uuid.New().String())
+	reservationID := fmt.Sprintf("RES-%s", uuid.New().String())
 
 	cacheKey := cache.OrderCacheKey(req.OrderId)
 	if err := s.cache.Delete(ctx, cacheKey); err != nil {

@@ -29,7 +29,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	dbpool, err := db.New(cfg.DatabaseURL)
 	if err != nil {
@@ -45,7 +45,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to dial product service", zap.Error(err))
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	productClient := productpb.NewProductServiceClient(conn)
 
@@ -70,7 +70,7 @@ func main() {
 	metricsMux := http.NewServeMux()
 	metricsMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	go func() {

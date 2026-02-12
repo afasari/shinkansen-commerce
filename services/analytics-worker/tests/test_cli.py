@@ -3,6 +3,7 @@ Tests for analytics worker CLI
 """
 
 from click.testing import CliRunner
+
 from analytics_worker.cli import main
 
 

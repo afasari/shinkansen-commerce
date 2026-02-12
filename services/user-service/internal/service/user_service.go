@@ -104,7 +104,7 @@ func (s *UserService) LoginUser(ctx context.Context, req *userpb.LoginUserReques
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	s.cache.Delete(ctx, cache.UserCacheKey(user.ID.String()))
+	_ = s.cache.Delete(ctx, cache.UserCacheKey(user.ID.String()))
 
 	return &userpb.LoginUserResponse{
 		UserId:       user.ID.String(),
@@ -172,7 +172,7 @@ func (s *UserService) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 	}
 
 	cacheKey := cache.UserCacheKey(userID.String())
-	s.cache.Delete(ctx, cacheKey)
+	_ = s.cache.Delete(ctx, cacheKey)
 
 	updatedUser, err := s.queries.GetUser(ctx, userID)
 	if err != nil {
@@ -205,7 +205,7 @@ func (s *UserService) AddAddress(ctx context.Context, req *userpb.AddAddressRequ
 	}
 
 	cacheKey := cache.AddressesCacheKey(userID.String())
-	s.cache.Delete(ctx, cacheKey)
+	_ = s.cache.Delete(ctx, cacheKey)
 
 	return &userpb.AddAddressResponse{
 		AddressId: addressID.String(),
@@ -311,7 +311,7 @@ func (s *UserService) UpdateAddress(ctx context.Context, req *userpb.UpdateAddre
 	}
 
 	cacheKey := cache.AddressesCacheKey(address.UserID.String())
-	s.cache.Delete(ctx, cacheKey)
+	_ = s.cache.Delete(ctx, cacheKey)
 
 	updatedAddress, err := s.queries.GetAddress(ctx, addressID)
 	if err != nil {
@@ -339,7 +339,7 @@ func (s *UserService) DeleteAddress(ctx context.Context, req *userpb.DeleteAddre
 	}
 
 	cacheKey := cache.AddressesCacheKey(address.UserID.String())
-	s.cache.Delete(ctx, cacheKey)
+	_ = s.cache.Delete(ctx, cacheKey)
 
 	return &sharedpb.Empty{}, nil
 }

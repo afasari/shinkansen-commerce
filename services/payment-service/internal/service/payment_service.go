@@ -112,8 +112,8 @@ func (s *PaymentService) ProcessPayment(ctx context.Context, req *paymentpb.Proc
 		return nil, fmt.Errorf("failed to update payment status: %w", err)
 	}
 
-	s.cache.Delete(ctx, cache.PaymentCacheKey(req.PaymentId))
-	s.cache.Delete(ctx, cache.PaymentsByOrderCacheKey(payment.OrderID.String()))
+	_ = s.cache.Delete(ctx, cache.PaymentCacheKey(req.PaymentId))
+	_ = s.cache.Delete(ctx, cache.PaymentsByOrderCacheKey(payment.OrderID.String()))
 
 	return &paymentpb.ProcessPaymentResponse{
 		Status:        status,
@@ -147,8 +147,8 @@ func (s *PaymentService) RefundPayment(ctx context.Context, req *paymentpb.Refun
 		return nil, fmt.Errorf("failed to update payment status: %w", err)
 	}
 
-	s.cache.Delete(ctx, cache.PaymentCacheKey(req.PaymentId))
-	s.cache.Delete(ctx, cache.PaymentsByOrderCacheKey(payment.OrderID.String()))
+	_ = s.cache.Delete(ctx, cache.PaymentCacheKey(req.PaymentId))
+	_ = s.cache.Delete(ctx, cache.PaymentsByOrderCacheKey(payment.OrderID.String()))
 
 	return &sharedpb.Empty{}, nil
 }
@@ -158,8 +158,8 @@ func (s *PaymentService) processWithGateway(ctx context.Context, payment db.Paym
 		zap.String("payment_id", payment.ID.String()),
 		zap.String("method", payment.Method))
 
-	status := paymentpb.PaymentStatus_PAYMENT_STATUS_COMPLETED
-	transactionID := fmt.Sprintf("TXN-%s-%d", uuid.New().String()[:8], time.Now().Unix())
+	var status paymentpb.PaymentStatus
+	var transactionID string
 
 	switch payment.Method {
 	case "PAYMENT_METHOD_CREDIT_CARD":

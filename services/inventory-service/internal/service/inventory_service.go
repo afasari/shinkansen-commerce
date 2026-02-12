@@ -111,7 +111,7 @@ func (s *InventoryService) ReserveStock(ctx context.Context, req *inventorypb.Re
 		}
 
 		reason := fmt.Sprintf("Order: %s", req.OrderId)
-		s.queries.CreateStockMovement(ctx, db.CreateStockMovementParams{
+		_ = s.queries.CreateStockMovement(ctx, db.CreateStockMovementParams{
 			StockItemID:  stock.ID,
 			MovementType: "MOVEMENT_TYPE_RESERVATION",
 			Quantity:     int(item.Quantity),
@@ -171,7 +171,7 @@ func (s *InventoryService) UpdateStock(ctx context.Context, req *inventorypb.Upd
 			movementType = "MOVEMENT_TYPE_OUTBOUND"
 		}
 
-		s.queries.CreateStockMovement(ctx, db.CreateStockMovementParams{
+		_ = s.queries.CreateStockMovement(ctx, db.CreateStockMovementParams{
 			StockItemID:  stock.ID,
 			MovementType: movementType,
 			Quantity:     int(req.QuantityDelta),

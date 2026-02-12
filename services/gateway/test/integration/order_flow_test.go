@@ -67,7 +67,7 @@ func (c *TestClient) requestJSON(method, url string, body, response interface{},
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
@@ -93,7 +93,7 @@ func TestCompleteOrderFlow(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Health check failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -330,7 +330,7 @@ func TestCompleteOrderFlow(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Update order status failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusNoContent {
 			body, _ := getResponseBytes(resp)

@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	cfg, err = config.Load()
 	if err != nil {
@@ -42,37 +42,37 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to dial product service", zap.Error(err))
 	}
-	defer productConn.Close()
+	defer func() { _ = productConn.Close() }()
 
 	orderConn, err := grpc.NewClient(cfg.OrderServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Fatal("Failed to dial order service", zap.Error(err))
 	}
-	defer orderConn.Close()
+	defer func() { _ = orderConn.Close() }()
 
 	userConn, err := grpc.NewClient(cfg.UserServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Fatal("Failed to dial user service", zap.Error(err))
 	}
-	defer userConn.Close()
+	defer func() { _ = userConn.Close() }()
 
 	paymentConn, err := grpc.NewClient(cfg.PaymentServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Fatal("Failed to dial payment service", zap.Error(err))
 	}
-	defer paymentConn.Close()
+	defer func() { _ = paymentConn.Close() }()
 
 	inventoryConn, err := grpc.NewClient(cfg.InventoryServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Fatal("Failed to dial inventory service", zap.Error(err))
 	}
-	defer inventoryConn.Close()
+	defer func() { _ = inventoryConn.Close() }()
 
 	deliveryConn, err := grpc.NewClient(cfg.DeliveryServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Fatal("Failed to dial delivery service", zap.Error(err))
 	}
-	defer deliveryConn.Close()
+	defer func() { _ = deliveryConn.Close() }()
 
 	mux := http.NewServeMux()
 

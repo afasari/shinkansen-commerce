@@ -10,7 +10,7 @@ import (
 func RegisterHandlers(ctx context.Context, mux *http.ServeMux, productConn, orderConn, userConn, paymentConn, inventoryConn, deliveryConn *grpc.ClientConn) error {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	productHandler := NewProductHandler(productConn)

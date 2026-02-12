@@ -19,7 +19,7 @@ import (
 
 func setupIntegrationTest(t *testing.T) (*service.ProductService, func()) {
 	logger := zap.NewNop()
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	dbpool, err := db.New("postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen?sslmode=disable")
 	require.NoError(t, err, "failed to connect to database")
@@ -33,7 +33,7 @@ func setupIntegrationTest(t *testing.T) (*service.ProductService, func()) {
 
 	cleanup := func() {
 		dbpool.Close()
-		redisClient.Close()
+		_ = redisClient.Close()
 	}
 
 	return productService, cleanup
@@ -196,7 +196,7 @@ func TestIntegration_ListProducts(t *testing.T) {
 
 		resp, err := service.CreateProduct(ctx, createReq)
 		require.NoError(t, err)
-		productIDs = append(productIDs, resp.ProductId)
+		_ = append(productIDs, resp.ProductId)
 	}
 
 	listReq := &productpb.ListProductsRequest{
@@ -324,7 +324,7 @@ func TestIntegration_Pagination(t *testing.T) {
 
 		resp, err := service.CreateProduct(ctx, createReq)
 		require.NoError(t, err)
-		productIDs = append(productIDs, resp.ProductId)
+		_ = append(productIDs, resp.ProductId)
 	}
 
 	page1Req := &productpb.ListProductsRequest{

@@ -101,7 +101,7 @@ func runConcurrentTest(client productpb.ProductServiceClient, productID string, 
 
 func runCacheBenchmark(client productpb.ProductServiceClient) {
 	fmt.Println("\n=== Cache Performance Benchmark ===")
-	fmt.Println("This will compare cache miss vs cache hit performance\n")
+	fmt.Println("This will compare cache miss vs cache hit performance")
 
 	fmt.Println("Step 1: Cache Miss Test (Cold Start)")
 	fmt.Println("Fetching product from database...")
@@ -140,7 +140,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to connect: %v", err))
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := productpb.NewProductServiceClient(conn)
 
@@ -151,7 +151,7 @@ func main() {
 
 	fmt.Println("=== Product Service Load Test ===")
 	fmt.Println("Target: 10,000 concurrent read requests")
-	fmt.Println("Service: localhost:9091\n")
+	fmt.Println("Service: localhost:9091")
 
 	const concurrentRequests = 10000
 	productID := os.Args[1]

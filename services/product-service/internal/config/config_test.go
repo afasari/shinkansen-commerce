@@ -30,16 +30,16 @@ func TestLoad(t *testing.T) {
 		{
 			name: "success with env vars",
 			setup: func() func() {
-				os.Setenv("GRPC_SERVER_ADDRESS", ":50051")
-				os.Setenv("METRICS_SERVER_ADDRESS", ":8080")
-				os.Setenv("DATABASE_URL", "postgres://user:pass@host:5432/db?sslmode=require")
-				os.Setenv("REDIS_URL", "redis://redis.example.com:6380")
+				_ = os.Setenv("GRPC_SERVER_ADDRESS", ":50051")
+				_ = os.Setenv("METRICS_SERVER_ADDRESS", ":8080")
+				_ = os.Setenv("DATABASE_URL", "postgres://user:pass@host:5432/db?sslmode=require")
+				_ = os.Setenv("REDIS_URL", "redis://redis.example.com:6380")
 
 				return func() {
-					os.Unsetenv("GRPC_SERVER_ADDRESS")
-					os.Unsetenv("METRICS_SERVER_ADDRESS")
-					os.Unsetenv("DATABASE_URL")
-					os.Unsetenv("REDIS_URL")
+					_ = os.Unsetenv("GRPC_SERVER_ADDRESS")
+					_ = os.Unsetenv("METRICS_SERVER_ADDRESS")
+					_ = os.Unsetenv("DATABASE_URL")
+					_ = os.Unsetenv("REDIS_URL")
 				}
 			},
 			want: &Config{
@@ -53,12 +53,12 @@ func TestLoad(t *testing.T) {
 		{
 			name: "success with partial env vars",
 			setup: func() func() {
-				os.Setenv("GRPC_SERVER_ADDRESS", ":3000")
-				os.Setenv("REDIS_URL", "redis://custom:6379")
+				_ = os.Setenv("GRPC_SERVER_ADDRESS", ":3000")
+				_ = os.Setenv("REDIS_URL", "redis://custom:6379")
 
 				return func() {
-					os.Unsetenv("GRPC_SERVER_ADDRESS")
-					os.Unsetenv("REDIS_URL")
+					_ = os.Unsetenv("GRPC_SERVER_ADDRESS")
+					_ = os.Unsetenv("REDIS_URL")
 				}
 			},
 			want: &Config{
@@ -72,12 +72,12 @@ func TestLoad(t *testing.T) {
 		{
 			name: "success with empty env vars",
 			setup: func() func() {
-				os.Setenv("GRPC_SERVER_ADDRESS", "")
-				os.Setenv("DATABASE_URL", "")
+				_ = os.Setenv("GRPC_SERVER_ADDRESS", "")
+				_ = os.Setenv("DATABASE_URL", "")
 
 				return func() {
-					os.Unsetenv("GRPC_SERVER_ADDRESS")
-					os.Unsetenv("DATABASE_URL")
+					_ = os.Unsetenv("GRPC_SERVER_ADDRESS")
+					_ = os.Unsetenv("DATABASE_URL")
 				}
 			},
 			want: &Config{
@@ -121,9 +121,9 @@ func TestGetEnv(t *testing.T) {
 			key:          "TEST_VAR",
 			defaultValue: "default",
 			setup: func() func() {
-				os.Setenv("TEST_VAR", "value")
+				_ = os.Setenv("TEST_VAR", "value")
 				return func() {
-					os.Unsetenv("TEST_VAR")
+					_ = os.Unsetenv("TEST_VAR")
 				}
 			},
 			expectedValue: "value",
@@ -142,9 +142,9 @@ func TestGetEnv(t *testing.T) {
 			key:          "EMPTY_VAR",
 			defaultValue: "default",
 			setup: func() func() {
-				os.Setenv("EMPTY_VAR", "")
+				_ = os.Setenv("EMPTY_VAR", "")
 				return func() {
-					os.Unsetenv("EMPTY_VAR")
+					_ = os.Unsetenv("EMPTY_VAR")
 				}
 			},
 			expectedValue: "",
@@ -154,9 +154,9 @@ func TestGetEnv(t *testing.T) {
 			key:          "SPECIAL_VAR",
 			defaultValue: "default",
 			setup: func() func() {
-				os.Setenv("SPECIAL_VAR", "value@#$%^&*()")
+				_ = os.Setenv("SPECIAL_VAR", "value@#$%^&*()")
 				return func() {
-					os.Unsetenv("SPECIAL_VAR")
+					_ = os.Unsetenv("SPECIAL_VAR")
 				}
 			},
 			expectedValue: "value@#$%^&*()",

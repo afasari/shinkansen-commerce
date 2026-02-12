@@ -21,7 +21,7 @@ func setupRedis(t *testing.T) (*RedisCache, func()) {
 	cache := NewRedisCache(client)
 
 	cleanup := func() {
-		client.Close()
+		_ = client.Close()
 		s.Close()
 	}
 
@@ -110,10 +110,6 @@ func TestRedisCache_Set(t *testing.T) {
 	type TestStruct struct {
 		Name  string `json:"name"`
 		Value int    `json:"value"`
-	}
-
-	type Unmarshalable struct {
-		Func func() string
 	}
 
 	tests := []struct {

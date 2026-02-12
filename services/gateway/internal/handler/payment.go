@@ -35,6 +35,22 @@ func (h *PaymentHandler) handlePayments(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+func (h *PaymentHandler) createPayment(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	var req paymentpb.CreatePaymentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.client.CreatePayment(ctx, &req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, resp)
+}
+
 func (h *PaymentHandler) handlePayment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -61,52 +77,6 @@ func (h *PaymentHandler) handlePayment(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
-}
-
-func (h *PaymentHandler) handlePaymentProcess(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	paymentID := r.URL.Path[len("/v1/payments/"):]
-	parts := splitPath(paymentID)
-	if len(parts) > 1 && parts[1] == "process" {
-		if r.Method == http.MethodPost {
-			h.processPayment(w, r, ctx, parts[0])
-			return
-		}
-	}
-
-	http.Error(w, "Not found", http.StatusNotFound)
-}
-
-func (h *PaymentHandler) handlePaymentRefund(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	paymentID := r.URL.Path[len("/v1/payments/"):]
-	parts := splitPath(paymentID)
-	if len(parts) > 1 && parts[1] == "refund" {
-		if r.Method == http.MethodPost {
-			h.refundPayment(w, r, ctx, parts[0])
-			return
-		}
-	}
-
-	http.Error(w, "Not found", http.StatusNotFound)
-}
-
-func (h *PaymentHandler) createPayment(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	var req paymentpb.CreatePaymentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	resp, err := h.client.CreatePayment(ctx, &req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	respondJSON(w, http.StatusCreated, resp)
 }
 
 func (h *PaymentHandler) getPayment(w http.ResponseWriter, r *http.Request, ctx context.Context, paymentID string) {
