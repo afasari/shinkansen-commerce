@@ -87,3 +87,8 @@ uv.lock
 # Database
 *.db
 *.sqlite
+
+# Node.js
+node_modules/
+docs/node_modules/
+docs/package-lock.json
