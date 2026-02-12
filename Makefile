@@ -22,7 +22,7 @@ proto-gen: ## Generate gRPC code from protobufs
 	@if ! command -v protoc >/dev/null 2>&1; then \
 		echo "Installing protoc..." && \
 		curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-linux-x86_64.zip -o /tmp/protoc.zip && \
-		unzip -o /tmp/protoc.zip -d /usr/local bin/protoc && \
+		unzip -o /tmp/protoc.zip -d /usr/local 'bin/*' 'include/*' && \
 		rm /tmp/protoc.zip; \
 	fi
 	@mkdir -p gen/proto/go
@@ -34,7 +34,7 @@ proto-openapi-gen: ## Generate OpenAPI docs from protobufs
 	@if ! command -v protoc >/dev/null 2>&1; then \
 		echo "Installing protoc..." && \
 		curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-linux-x86_64.zip -o /tmp/protoc.zip && \
-		unzip -o /tmp/protoc.zip -d /usr/local bin/protoc && \
+		unzip -o /tmp/protoc.zip -d /usr/local 'bin/*' 'include/*' && \
 		rm /tmp/protoc.zip; \
 	fi
 	@mkdir -p services/gateway/docs/api
