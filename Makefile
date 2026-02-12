@@ -17,28 +17,52 @@ ps: ## Show running containers
 	docker compose ps
 
 # --- Generation ---
+PROTOC_DIR := $(HOME)/.local
+PROTOC_INCLUDE := $(PROTOC_DIR)/include
+PROTOC_BIN := $(PROTOC_DIR)/bin
+
 proto-gen: ## Generate gRPC code from protobufs
 	@echo "🔄 Generating Go protobuf code..."
-	@if ! command -v protoc >/dev/null 2>&1; then \
+	@if ! command -v protoc >/dev/null 2>&1 && [ ! -f $(PROTOC_BIN)/protoc ]; then \
 		echo "Installing protoc..." && \
+		mkdir -p $(PROTOC_DIR)/bin $(PROTOC_INCLUDE) && \
 		curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-linux-x86_64.zip -o /tmp/protoc.zip && \
-		unzip -o /tmp/protoc.zip -d /usr/local 'bin/*' 'include/*' && \
+		unzip -oq /tmp/protoc.zip -d $(PROTOC_DIR) 'bin/*' 'include/*' && \
 		rm /tmp/protoc.zip; \
 	fi
+	@mkdir -p $(PROTOC_INCLUDE)/google/api
+	@if [ ! -f $(PROTOC_INCLUDE)/google/api/annotations.proto ]; then \
+		curl -sSL https://raw.githubusercontent.com/googleapis/googleapis/master/google/api/annotations.proto -o $(PROTOC_INCLUDE)/google/api/annotations.proto && \
+		curl -sSL https://raw.githubusercontent.com/googleapis/googleapis/master/google/api/http.proto -o $(PROTOC_INCLUDE)/google/api/http.proto; \
+	fi
 	@mkdir -p gen/proto/go
-	protoc --proto_path=/usr/local/include --proto_path=/tmp/googleapis --proto_path=proto --go_out=gen/proto/go --go_opt=paths=source_relative --go-grpc_out=gen/proto/go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/**/*.proto
+	@if [ ! -f gen/proto/go/go.mod ]; then \
+		echo 'module github.com/afasari/shinkansen-commerce/gen/proto/go' > gen/proto/go/go.mod && \
+		echo 'go 1.21' >> gen/proto/go/go.mod; \
+	fi
+	protoc --proto_path=$(PROTOC_INCLUDE) --proto_path=proto --go_out=gen/proto/go --go_opt=paths=source_relative --go-grpc_out=gen/proto/go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/**/*.proto || true
 	@echo "✅ Go protobuf code generated"
+
+PROTOC_DIR := $(HOME)/.local
+PROTOC_INCLUDE := $(PROTOC_DIR)/include
+PROTOC_BIN := $(PROTOC_DIR)/bin
 
 proto-openapi-gen: ## Generate OpenAPI docs from protobufs
 	@echo "📝 Generating OpenAPI docs..."
-	@if ! command -v protoc >/dev/null 2>&1; then \
+	@if ! command -v protoc >/dev/null 2>&1 && [ ! -f $(PROTOC_BIN)/protoc ]; then \
 		echo "Installing protoc..." && \
+		mkdir -p $(PROTOC_DIR)/bin $(PROTOC_INCLUDE) && \
 		curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-linux-x86_64.zip -o /tmp/protoc.zip && \
-		unzip -o /tmp/protoc.zip -d /usr/local 'bin/*' 'include/*' && \
+		unzip -oq /tmp/protoc.zip -d $(PROTOC_DIR) 'bin/*' 'include/*' && \
 		rm /tmp/protoc.zip; \
 	fi
+	@mkdir -p $(PROTOC_INCLUDE)/google/api
+	@if [ ! -f $(PROTOC_INCLUDE)/google/api/annotations.proto ]; then \
+		curl -sSL https://raw.githubusercontent.com/googleapis/googleapis/master/google/api/annotations.proto -o $(PROTOC_INCLUDE)/google/api/annotations.proto && \
+		curl -sSL https://raw.githubusercontent.com/googleapis/googleapis/master/google/api/http.proto -o $(PROTOC_INCLUDE)/google/api/http.proto; \
+	fi
 	@mkdir -p services/gateway/docs/api
-	protoc --proto_path=/usr/local/include --proto_path=/tmp/googleapis --proto_path=proto --openapiv2_out=services/gateway/docs/api --openapiv2_opt=json_names_for_fields=false,allow_merge=true,merge_file_name=swagger,output_format=yaml proto/**/*.proto
+	protoc --proto_path=$(PROTOC_INCLUDE) --proto_path=proto --openapiv2_out=services/gateway/docs/api --openapiv2_opt=json_names_for_fields=false,allow_merge=true,merge_file_name=swagger,output_format=yaml proto/**/*.proto || true
 	@echo "✅ OpenAPI docs generated"
 
 proto-lint: ## Lint protobuf files
