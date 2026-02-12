@@ -13,15 +13,17 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+WORKDIR /root
 
- COPY --from=builder /app/gateway .
-      - name: Copy swagger files
-        run: |
-          mkdir -p /root/docs/api && \
-          cp ./docs/api/swagger.yaml /root/docs/api/
-  EXPOSE 8080
+# Create docs directory structure
+RUN mkdir -p /docs/api
 
- EXPOSE 8080
+# Copy swagger files
+COPY --from=builder /app/services/gateway/cmd/gateway/api/swagger.yaml /docs/api/swagger.yaml
+COPY --from=builder /app/services/gateway/cmd/gateway/api/index.html /docs/api/index.html
 
- CMD ["./gateway"]
+COPY --from=builder /app/gateway /root/gateway
+
+EXPOSE 8080
+
+CMD ["./gateway"]

@@ -1,3 +1,4 @@
+swagger: "2.0"
 basePath: /
 host: localhost:8080
 info:
@@ -27,13 +28,13 @@ paths:
         in: query
         name: active_only
         type: boolean
-      - default: "1"
+      - default: 1
         description: Page number
         in: query
         name: page
         type: integer
-      - default: "20"
-        description: Items per page (max: 100)
+      - default: 20
+        description: "Items per page (max: 100)"
         in: query
         name: limit
         type: integer
@@ -120,12 +121,12 @@ paths:
         in: query
         name: in_stock_only
         type: boolean
-      - default: "1"
+      - default: 1
         description: Page number
         in: query
         name: page
         type: integer
-      - default: "20"
+      - default: 20
         description: Items per page
         in: query
         name: limit
@@ -248,12 +249,12 @@ paths:
       description: List user orders
       operationId: listOrders
       parameters:
-      - default: "1"
+      - default: 1
         description: Page number
         in: query
         name: page
         type: integer
-      - default: "20"
+      - default: 20
         description: Items per page
         in: query
         name: limit
@@ -951,12 +952,12 @@ paths:
         name: stock_item_id
         required: true
         type: string
-      - default: "1"
+      - default: 1
         description: Page number
         in: query
         name: page
         type: integer
-      - default: "20"
+      - default: 20
         description: Items per page
         in: query
         name: limit
@@ -1004,8 +1005,8 @@ paths:
       - delivery
   /v1/delivery/slots/{slot_id}:
     post:
-      description: Reserve delivery slot
-      operationId: reserveDeliverySlot
+      description: Reserve a specific delivery slot
+      operationId: reserveSlot
       parameters:
       - in: body
         name: body
@@ -1070,7 +1071,7 @@ paths:
         schema:
           properties:
             status:
-                type: string
+              type: string
           type: object
       - description: Shipment ID
         in: path
@@ -1106,7 +1107,6 @@ securityDefinitions:
 schemes:
 - http
 - https
-swagger: "2.0"
 definitions:
   Address:
     properties:
