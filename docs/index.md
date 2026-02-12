@@ -12,7 +12,6 @@ hero:
     - theme: alt
       text: View API
       link: /api/overview
-
 features:
   - title: 🚄 Spec-First Architecture
     details: Protocol Buffers as single source of truth. Auto-generated code, type-safe communication across Go, Rust, Python services.
