@@ -28,7 +28,7 @@ go.work.sum
 .env.local
 
 # Generated code
-gen/
+# gen/  # Commented out to allow generated proto code in version control
 **/internal/db/*.go
 
 # Editor/IDE

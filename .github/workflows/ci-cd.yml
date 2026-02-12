@@ -32,13 +32,14 @@ jobs:
 
       - name: Download Go dependencies for each service
         run: |
-          cd services/gateway && go mod download
-          cd services/product-service && go mod download
-          cd services/order-service && go mod download
-          cd services/payment-service && go mod download
-          cd services/user-service && go mod download
-          cd services/delivery-service && go mod download
-          cd services/shared/go && go mod download
+          go mod download
+          cd services/gateway && go mod download && cd ..
+          cd services/product-service && go mod download && cd ..
+          cd services/order-service && go mod download && cd ..
+          cd services/payment-service && go mod download && cd ..
+          cd services/user-service && go mod download && cd ..
+          cd services/delivery-service && go mod download && cd ..
+          cd services/shared/go && go mod download && cd ..
 
       - name: Verify Go dependencies
         run: go list -m all
