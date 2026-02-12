@@ -41,14 +41,14 @@ jobs:
           cd docs
           npm install
 
-      - name: Generate OpenAPI Docs
-        run: |
-          # Generate swagger.yaml from protobuf definitions
-          cd docs
-          mkdir -p public
-          make proto-openapi-gen
-          # Copy generated swagger.yaml to public
-          cp ../services/gateway/docs/api/swagger.yaml public/ || echo "Warning: swagger.yaml not found"
+      # - name: Generate OpenAPI Docs
+      #   run: |
+      #     # Generate swagger.yaml from protobuf definitions
+      #     cd docs
+      #     mkdir -p public
+      #     make proto-openapi-gen
+      #     # Copy generated swagger.yaml to public
+      #     cp ../services/gateway/docs/api/swagger.yaml public/ || echo "Warning: swagger.yaml not found"
 
       - name: Build VitePress
         run: |
