@@ -30,16 +30,36 @@ jobs:
       - name: Generate protobuf code
         run: make proto-gen
 
-      - name: Download Go dependencies for each service
-        run: |
-          go mod download
-          cd services/gateway && go mod download && cd ..
-          cd services/product-service && go mod download && cd ..
-          cd services/order-service && go mod download && cd ..
-          cd services/payment-service && go mod download && cd ..
-          cd services/user-service && go mod download && cd ..
-          cd services/delivery-service && go mod download && cd ..
-          cd services/shared/go && go mod download && cd ..
+      - name: Download Go dependencies for root
+        run: go mod download
+
+      - name: Download gateway dependencies
+        working-directory: services/gateway
+        run: go mod download
+
+      - name: Download product-service dependencies
+        working-directory: services/product-service
+        run: go mod download
+
+      - name: Download order-service dependencies
+        working-directory: services/order-service
+        run: go mod download
+
+      - name: Download payment-service dependencies
+        working-directory: services/payment-service
+        run: go mod download
+
+      - name: Download user-service dependencies
+        working-directory: services/user-service
+        run: go mod download
+
+      - name: Download delivery-service dependencies
+        working-directory: services/delivery-service
+        run: go mod download
+
+      - name: Download shared/go dependencies
+        working-directory: services/shared/go
+        run: go mod download
 
       - name: Verify Go dependencies
         run: go list -m all
@@ -94,8 +114,33 @@ jobs:
       - name: Generate SQL code
         run: make sqlc-gen
 
-      - name: Download dependencies
-        run: make init-deps
+      - name: Download gateway dependencies
+        working-directory: services/gateway
+        run: go mod tidy
+
+      - name: Download product-service dependencies
+        working-directory: services/product-service
+        run: go mod tidy
+
+      - name: Download order-service dependencies
+        working-directory: services/order-service
+        run: go mod tidy
+
+      - name: Download payment-service dependencies
+        working-directory: services/payment-service
+        run: go mod tidy
+
+      - name: Download user-service dependencies
+        working-directory: services/user-service
+        run: go mod tidy
+
+      - name: Download delivery-service dependencies
+        working-directory: services/delivery-service
+        run: go mod tidy
+
+      - name: Download shared/go dependencies
+        working-directory: services/shared/go
+        run: go mod tidy
 
       - name: Run tests
         run: make test-coverage
@@ -156,8 +201,33 @@ jobs:
       - name: Generate SQL code
         run: make sqlc-gen
 
-      - name: Download dependencies
-        run: make init-deps
+      - name: Download gateway dependencies
+        working-directory: services/gateway
+        run: go mod tidy
+
+      - name: Download product-service dependencies
+        working-directory: services/product-service
+        run: go mod tidy
+
+      - name: Download order-service dependencies
+        working-directory: services/order-service
+        run: go mod tidy
+
+      - name: Download payment-service dependencies
+        working-directory: services/payment-service
+        run: go mod tidy
+
+      - name: Download user-service dependencies
+        working-directory: services/user-service
+        run: go mod tidy
+
+      - name: Download delivery-service dependencies
+        working-directory: services/delivery-service
+        run: go mod tidy
+
+      - name: Download shared/go dependencies
+        working-directory: services/shared/go
+        run: go mod tidy
 
       - name: Build services
         run: make build
