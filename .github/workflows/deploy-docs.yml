@@ -45,12 +45,12 @@ jobs:
 
       - name: Generate OpenAPI Docs
         run: |
-          # Generate a basic swagger.yaml for documentation
+          # Generate swagger.yaml from protobuf definitions
           cd docs
           mkdir -p public
-          # The swagger.yaml is already generated and stored in services/gateway/docs/api/
-          # Copy it to docs/public for reference
-          cp ../services/gateway/docs/api/swagger.yaml public/ 2>/dev/null || echo "Using placeholder"
+          make proto-openapi-gen
+          # Copy generated swagger.yaml to public
+          cp ../services/gateway/docs/api/swagger.yaml public/ || echo "Warning: swagger.yaml not found"
 
       - name: Build VitePress
         run: |
@@ -58,7 +58,7 @@ jobs:
           npm run build
 
       - name: Upload Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: docs/.vitepress/dist
 

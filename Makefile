@@ -5,16 +5,16 @@ help:
 
  # --- Infrastructure ---
 up: ## Start Infrastructure (Docker Compose)
-	docker-compose up -d
+	docker compose up -d
 
 down: ## Stop Infrastructure
-	docker-compose down
+	docker compose down
 
 logs: ## View Infrastructure Logs
-	docker-compose logs -f
+	docker compose logs -f
 
 ps: ## Show running containers
-	docker-compose ps
+	docker compose ps
 
 # --- Generation ---
  proto-gen: ## Generate gRPC code from protobufs
