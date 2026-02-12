@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package shinkansen.delivery;
 
-import "shared/common.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/delivery";

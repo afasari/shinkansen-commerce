@@ -38,6 +38,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'docs/package-lock.json'
 
+      - name: Install protoc
+        run: |
+          apt-get update && apt-get install -y protobuf-compiler
+          protoc --version
+
       - name: Install Dependencies
         run: |
           cd docs

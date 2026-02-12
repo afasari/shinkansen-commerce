@@ -2,9 +2,6 @@ syntax = "proto3";
 
 package shinkansen.common;
 
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/wrappers.proto";
-
 option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/shared";
 
 message Money {
