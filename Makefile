@@ -26,7 +26,7 @@ proto-gen: ## Generate gRPC code from protobufs
 		rm /tmp/protoc.zip; \
 	fi
 	@mkdir -p gen/proto/go
-	protoc --proto_path=/tmp/googleapis --proto_path=proto --go_out=gen/proto/go --go_opt=paths=source_relative --go-grpc_out=gen/proto/go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/**/*.proto
+	protoc --proto_path=/usr/local/include --proto_path=/tmp/googleapis --proto_path=proto --go_out=gen/proto/go --go_opt=paths=source_relative --go-grpc_out=gen/proto/go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/**/*.proto
 	@echo "✅ Go protobuf code generated"
 
 proto-openapi-gen: ## Generate OpenAPI docs from protobufs
@@ -38,7 +38,7 @@ proto-openapi-gen: ## Generate OpenAPI docs from protobufs
 		rm /tmp/protoc.zip; \
 	fi
 	@mkdir -p services/gateway/docs/api
-	protoc --proto_path=/tmp/googleapis --proto_path=proto --openapiv2_out=services/gateway/docs/api --openapiv2_opt=json_names_for_fields=false,allow_merge=true,merge_file_name=swagger,output_format=yaml proto/**/*.proto
+	protoc --proto_path=/usr/local/include --proto_path=/tmp/googleapis --proto_path=proto --openapiv2_out=services/gateway/docs/api --openapiv2_opt=json_names_for_fields=false,allow_merge=true,merge_file_name=swagger,output_format=yaml proto/**/*.proto
 	@echo "✅ OpenAPI docs generated"
 
 proto-lint: ## Lint protobuf files
