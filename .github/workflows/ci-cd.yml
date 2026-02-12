@@ -68,11 +68,6 @@ jobs:
             sleep 2
           done
 
-      - name: Install protoc
-        run: |
-          apt-get update && apt-get install -y protobuf-compiler
-          protoc --version
-
       - name: Generate protobuf code
         run: make proto-gen
 
@@ -131,11 +126,6 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Install protoc
-        run: |
-          apt-get update && apt-get install -y protobuf-compiler
-          protoc --version
 
       - name: Generate protobuf code
         run: make proto-gen

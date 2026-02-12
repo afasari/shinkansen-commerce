@@ -17,22 +17,34 @@ ps: ## Show running containers
 	docker compose ps
 
 # --- Generation ---
- proto-gen: ## Generate gRPC code from protobufs
+proto-gen: ## Generate gRPC code from protobufs
 	@echo "🔄 Generating Go protobuf code..."
+	@if ! command -v protoc >/dev/null 2>&1; then \
+		echo "Installing protoc..." && \
+		curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-linux-x86_64.zip -o /tmp/protoc.zip && \
+		unzip -o /tmp/protoc.zip -d /usr/local bin/protoc && \
+		rm /tmp/protoc.zip; \
+	fi
 	@mkdir -p gen/proto/go
 	protoc --proto_path=/tmp/googleapis --proto_path=proto --go_out=gen/proto/go --go_opt=paths=source_relative --go-grpc_out=gen/proto/go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/**/*.proto
 	@echo "✅ Go protobuf code generated"
 
- proto-openapi-gen: ## Generate OpenAPI docs from protobufs
+proto-openapi-gen: ## Generate OpenAPI docs from protobufs
 	@echo "📝 Generating OpenAPI docs..."
+	@if ! command -v protoc >/dev/null 2>&1; then \
+		echo "Installing protoc..." && \
+		curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-linux-x86_64.zip -o /tmp/protoc.zip && \
+		unzip -o /tmp/protoc.zip -d /usr/local bin/protoc && \
+		rm /tmp/protoc.zip; \
+	fi
 	@mkdir -p services/gateway/docs/api
 	protoc --proto_path=/tmp/googleapis --proto_path=proto --openapiv2_out=services/gateway/docs/api --openapiv2_opt=json_names_for_fields=false,allow_merge=true,merge_file_name=swagger,output_format=yaml proto/**/*.proto
 	@echo "✅ OpenAPI docs generated"
 
- proto-lint: ## Lint protobuf files
+proto-lint: ## Lint protobuf files
 	buf lint proto
 
- proto-format: ## Format protobuf files
+proto-format: ## Format protobuf files
 	buf format -w proto
 
  sqlc-gen: ## Generate SQL code for Go services
