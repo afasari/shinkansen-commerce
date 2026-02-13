@@ -73,11 +73,11 @@ jobs:
           chmod +x /usr/local/bin/buf
           buf --version
 
-      # - name: Install sqlc
-      #   run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+      - name: Install sqlc
+        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
-      # - name: Generate SQL code
-      #   run: make sqlc-gen
+      - name: Generate SQL code
+        run: make sqlc-gen
 
       - name: Lint Go code
         run: make lint
