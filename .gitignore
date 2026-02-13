@@ -30,7 +30,8 @@ go.work.sum
 # Generated code
 # gen/  # Commented out to allow generated proto code in version control
 proto/gen/  # Duplicate generated code from old buf setup
-**/internal/db/*.go
+**/internal/db/repository.go
+**/internal/db/mock.go
 
 # Editor/IDE
 .idea/
