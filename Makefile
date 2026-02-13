@@ -221,13 +221,13 @@ test-python: uv-install ## Run Python tests
 # --- Lint ---
 lint: ## Run linters
 	@echo "🔍 Linting Go code..."
-	cd services/gateway && golangci-lint run --modules-download-mode=readonly
-	cd services/product-service && golangci-lint run --modules-download-mode=readonly
-	cd services/order-service && golangci-lint run --modules-download-mode=readonly
-	cd services/payment-service && golangci-lint run --modules-download-mode=readonly
-	cd services/user-service && golangci-lint run --modules-download-mode=readonly
-	cd services/delivery-service && golangci-lint run --modules-download-mode=readonly
-	cd services/inventory-service && golangci-lint run --modules-download-mode=readonly
+	cd services/gateway && golangci-lint run
+	cd services/product-service && golangci-lint run
+	cd services/order-service && golangci-lint run
+	cd services/payment-service && golangci-lint run
+	cd services/user-service && golangci-lint run
+	cd services/delivery-service && golangci-lint run
+	cd services/inventory-service && golangci-lint run
 	@echo "🔍 Linting Python code..."
 	cd services/analytics-worker && uv run ruff check .
 	cd services/analytics-worker && uv run ruff format --check .

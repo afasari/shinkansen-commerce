@@ -73,6 +73,12 @@ jobs:
           chmod +x /usr/local/bin/buf
           buf --version
 
+      - name: Install sqlc
+        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+      - name: Generate SQL code
+        run: make sqlc-gen
+
       - name: Lint Go code
         run: make lint
 
@@ -104,6 +110,11 @@ jobs:
             echo "Waiting for PostgreSQL..."
             sleep 2
           done
+
+      - name: Install protoc
+        run: |
+          apt-get update && apt-get install -y protobuf-compiler
+          protoc --version
 
       - name: Generate protobuf code
         run: make proto-gen
@@ -191,6 +202,11 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
+
+      - name: Install protoc
+        run: |
+          apt-get update && apt-get install -y protobuf-compiler
+          protoc --version
 
       - name: Generate protobuf code
         run: make proto-gen
