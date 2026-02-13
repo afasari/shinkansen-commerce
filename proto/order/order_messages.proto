@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package shinkansen.order;
 
-import "shared/common.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
+import "shared/common.proto";
 
 option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/order";
 

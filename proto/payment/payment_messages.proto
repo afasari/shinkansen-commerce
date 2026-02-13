@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package shinkansen.payment;
 
-import "shared/common.proto";
 import "google/protobuf/timestamp.proto";
+import "shared/common.proto";
 
 option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/payment";
 

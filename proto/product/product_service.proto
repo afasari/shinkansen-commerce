@@ -2,54 +2,44 @@ syntax = "proto3";
 
 package shinkansen.product;
 
-import "shared/common.proto";
-import "product/product_messages.proto";
 import "google/api/annotations.proto";
+import "product/product_messages.proto";
+import "shared/common.proto";
 
 option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/product";
 
 service ProductService {
   rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {
-    option (google.api.http) = {
-      get: "/v1/products"
-    };
+    option (google.api.http) = {get: "/v1/products"};
   }
-  
+
   rpc GetProduct(GetProductRequest) returns (GetProductResponse) {
-    option (google.api.http) = {
-      get: "/v1/products/{product_id}"
-    };
+    option (google.api.http) = {get: "/v1/products/{product_id}"};
   }
-  
+
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse) {
     option (google.api.http) = {
       post: "/v1/products"
       body: "*"
     };
   }
-  
+
   rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {
     option (google.api.http) = {
       put: "/v1/products/{product_id}"
       body: "*"
     };
   }
-  
+
   rpc DeleteProduct(DeleteProductRequest) returns (shinkansen.common.Empty) {
-    option (google.api.http) = {
-      delete: "/v1/products/{product_id}"
-    };
+    option (google.api.http) = {delete: "/v1/products/{product_id}"};
   }
-  
+
   rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse) {
-    option (google.api.http) = {
-      get: "/v1/products/search"
-    };
+    option (google.api.http) = {get: "/v1/products/search"};
   }
-  
+
   rpc GetProductVariants(GetProductVariantsRequest) returns (GetProductVariantsResponse) {
-    option (google.api.http) = {
-      get: "/v1/products/{product_id}/variants"
-    };
+    option (google.api.http) = {get: "/v1/products/{product_id}/variants"};
   }
 }

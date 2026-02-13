@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package shinkansen.payment;
 
-import "shared/common.proto";
-import "payment/payment_messages.proto";
 import "google/api/annotations.proto";
+import "payment/payment_messages.proto";
+import "shared/common.proto";
 
 option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/payment";
 
@@ -15,20 +15,18 @@ service PaymentService {
       body: "*"
     };
   }
-  
+
   rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse) {
-    option (google.api.http) = {
-      get: "/v1/payments/{payment_id}"
-    };
+    option (google.api.http) = {get: "/v1/payments/{payment_id}"};
   }
-  
+
   rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse) {
     option (google.api.http) = {
       post: "/v1/payments/{payment_id}/process"
       body: "*"
     };
   }
-  
+
   rpc RefundPayment(RefundPaymentRequest) returns (shinkansen.common.Empty) {
     option (google.api.http) = {
       post: "/v1/payments/{payment_id}/refund"
