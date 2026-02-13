@@ -1,7 +1,3 @@
--- Name: update_order_status
--- Description: Update order status
--- Schema: orders
-
 -- name: UpdateOrderStatus :exec
 UPDATE orders.orders
 SET status = $2, updated_at = NOW()

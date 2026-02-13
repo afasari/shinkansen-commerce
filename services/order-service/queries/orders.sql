@@ -1,7 +1,3 @@
--- Name: create_order
--- Description: Create a new order
--- Schema: orders
-
 -- name: CreateOrder :exec
 INSERT INTO orders.orders (
     order_number, user_id, status, 

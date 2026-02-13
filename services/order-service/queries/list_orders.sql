@@ -1,7 +1,3 @@
--- Name: list_orders
--- Description: List user's orders with pagination
--- Schema: orders
-
 -- name: ListUserOrders :many
 SELECT id, order_number, user_id, status, 
        subtotal_units, subtotal_currency,

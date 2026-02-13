@@ -1,4 +1,4 @@
--- name: GetProduct
+-- name: GetProduct :one
 -- Get a single product by ID
 -- :product_id
 SELECT

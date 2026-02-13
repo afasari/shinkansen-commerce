@@ -1,4 +1,4 @@
--- name: DeleteProduct
+-- name: DeleteProduct :exec
 -- Soft delete a product by setting deleted_at timestamp
 -- :id
 UPDATE catalog.products

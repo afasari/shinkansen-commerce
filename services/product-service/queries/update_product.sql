@@ -1,4 +1,4 @@
--- name: UpdateProduct
+-- name: UpdateProduct :one
 -- Update product fields (only update provided fields)
 -- :id, :name, :description, :category_id, :price_units, :active
 UPDATE catalog.products

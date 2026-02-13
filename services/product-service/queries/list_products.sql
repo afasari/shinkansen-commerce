@@ -1,4 +1,4 @@
--- name: ListProducts
+-- name: ListProducts :many
 -- List products with optional filtering
 -- :category_id, :active_only, :limit, :offset
 SELECT

@@ -1,7 +1,3 @@
--- Name: order_items
--- Description: Manage order items
--- Schema: orders
-
 -- name: AddOrderItem :exec
 INSERT INTO orders.order_items (
     order_id, product_id, variant_id, product_name, quantity,

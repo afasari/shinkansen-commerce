@@ -1,4 +1,4 @@
--- name: GetProductVariants
+-- name: GetProductVariants :many
 -- Get all variants for a specific product
 -- :product_id
 SELECT

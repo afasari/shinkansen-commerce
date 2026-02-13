@@ -1,4 +1,4 @@
--- name: SearchProducts
+-- name: SearchProducts :many
 -- Full-text search for products using PostgreSQL GIN indexes
 -- :query, :category_id, :min_price, :max_price, :in_stock_only, :limit, :offset
 SELECT
