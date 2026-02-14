@@ -71,7 +71,7 @@ proto-lint: ## Lint protobuf files
 proto-format: ## Format protobuf files
 	buf format -w proto
 
- sqlc-gen: ## Generate SQL code for Go services
+sqlc-gen: ## Generate SQL code for Go services
 	@echo "🔄 Generating SQL code for Product Service..."
 	cd services/product-service && sqlc generate
 	@echo "✅ Product Service SQL generated"

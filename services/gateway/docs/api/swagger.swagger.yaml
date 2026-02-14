@@ -1,0 +1,1784 @@
+swagger: "2.0"
+info:
+  title: delivery/delivery_messages.proto
+  version: version not set
+tags:
+  - name: DeliveryService
+  - name: InventoryService
+  - name: OrderService
+  - name: KonbiniService
+  - name: PaymentService
+  - name: PointsService
+  - name: ProductService
+  - name: UserService
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /v1/delivery/slots:
+    get:
+      operationId: DeliveryService_GetDeliverySlots
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/deliveryGetDeliverySlotsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: delivery_zone_id
+          in: query
+          required: false
+          type: string
+        - name: date
+          in: query
+          required: false
+          type: string
+          format: date-time
+      tags:
+        - DeliveryService
+  /v1/delivery/slots/{slot_id}:
+    post:
+      operationId: DeliveryService_ReserveDeliverySlot
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/shinkansendeliveryReserveDeliverySlotResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: slot_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/deliveryDeliveryServiceReserveDeliverySlotBody'
+      tags:
+        - DeliveryService
+  /v1/inventory/release:
+    post:
+      operationId: InventoryService_ReleaseStock
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/commonEmpty'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/inventoryReleaseStockRequest'
+      tags:
+        - InventoryService
+  /v1/inventory/reserve:
+    post:
+      operationId: InventoryService_ReserveStock
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/inventoryReserveStockResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/inventoryReserveStockRequest'
+      tags:
+        - InventoryService
+  /v1/inventory/stock:
+    get:
+      operationId: InventoryService_GetStock
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/inventoryGetStockResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: stock_item_id
+          in: query
+          required: false
+          type: string
+        - name: product_id
+          in: query
+          required: false
+          type: string
+        - name: variant_id
+          in: query
+          required: false
+          type: string
+        - name: warehouse_id
+          in: query
+          required: false
+          type: string
+      tags:
+        - InventoryService
+    put:
+      operationId: InventoryService_UpdateStock
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/commonEmpty'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/inventoryUpdateStockRequest'
+      tags:
+        - InventoryService
+  /v1/inventory/stock/{stock_item_id}/movements:
+    get:
+      operationId: InventoryService_GetStockMovements
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/inventoryGetStockMovementsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: stock_item_id
+          in: path
+          required: true
+          type: string
+        - name: pagination.page
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pagination.limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pagination.total
+          in: query
+          required: false
+          type: integer
+          format: int32
+      tags:
+        - InventoryService
+  /v1/orders:
+    get:
+      operationId: OrderService_ListOrders
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/orderListOrdersResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          type: string
+        - name: status
+          in: query
+          required: false
+          type: string
+        - name: pagination.page
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pagination.limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pagination.total
+          in: query
+          required: false
+          type: integer
+          format: int32
+      tags:
+        - OrderService
+    post:
+      operationId: OrderService_CreateOrder
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/orderCreateOrderResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/orderCreateOrderRequest'
+      tags:
+        - OrderService
+  /v1/orders/{order_id}:
+    get:
+      operationId: OrderService_GetOrder
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/orderGetOrderResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - OrderService
+  /v1/orders/{order_id}/apply-points:
+    post:
+      operationId: OrderService_ApplyPoints
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/orderApplyPointsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/OrderServiceApplyPointsBody'
+      tags:
+        - OrderService
+  /v1/orders/{order_id}/cancel:
+    post:
+      operationId: OrderService_CancelOrder
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/commonEmpty'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          type: string
+        - name: reason
+          in: query
+          required: false
+          type: string
+      tags:
+        - OrderService
+  /v1/orders/{order_id}/reserve-delivery-slot:
+    post:
+      operationId: OrderService_ReserveDeliverySlot
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/shinkansenorderReserveDeliverySlotResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/orderOrderServiceReserveDeliverySlotBody'
+      tags:
+        - OrderService
+  /v1/orders/{order_id}/status:
+    post:
+      operationId: OrderService_UpdateOrderStatus
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/commonEmpty'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/OrderServiceUpdateOrderStatusBody'
+      tags:
+        - OrderService
+  /v1/payments:
+    post:
+      operationId: PaymentService_CreatePayment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/paymentCreatePaymentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/paymentCreatePaymentRequest'
+      tags:
+        - PaymentService
+  /v1/payments/{payment_id}:
+    get:
+      operationId: PaymentService_GetPayment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/paymentGetPaymentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - PaymentService
+  /v1/payments/{payment_id}/process:
+    post:
+      operationId: PaymentService_ProcessPayment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/paymentProcessPaymentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/PaymentServiceProcessPaymentBody'
+      tags:
+        - PaymentService
+  /v1/payments/{payment_id}/refund:
+    post:
+      operationId: PaymentService_RefundPayment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/commonEmpty'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/PaymentServiceRefundPaymentBody'
+      tags:
+        - PaymentService
+  /v1/products:
+    get:
+      operationId: ProductService_ListProducts
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/productListProductsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          type: string
+        - name: active_only
+          in: query
+          required: false
+          type: boolean
+        - name: pagination.page
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pagination.limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pagination.total
+          in: query
+          required: false
+          type: integer
+          format: int32
+      tags:
+        - ProductService
+    post:
+      operationId: ProductService_CreateProduct
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/productCreateProductResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/productCreateProductRequest'
+      tags:
+        - ProductService
+  /v1/products/search:
+    get:
+      operationId: ProductService_SearchProducts
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/productSearchProductsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: query
+          in: query
+          required: false
+          type: string
+        - name: category_id
+          in: query
+          required: false
+          type: string
+        - name: min_price.currency
+          in: query
+          required: false
+          type: string
+        - name: min_price.units
+          in: query
+          required: false
+          type: string
+          format: int64
+        - name: min_price.nanos
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: max_price.currency
+          in: query
+          required: false
+          type: string
+        - name: max_price.units
+          in: query
+          required: false
+          type: string
+          format: int64
+        - name: max_price.nanos
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: in_stock_only
+          in: query
+          required: false
+          type: boolean
+        - name: pagination.page
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pagination.limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pagination.total
+          in: query
+          required: false
+          type: integer
+          format: int32
+      tags:
+        - ProductService
+  /v1/products/{product_id}:
+    get:
+      operationId: ProductService_GetProduct
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/productGetProductResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - ProductService
+    delete:
+      operationId: ProductService_DeleteProduct
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/commonEmpty'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - ProductService
+    put:
+      operationId: ProductService_UpdateProduct
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/productUpdateProductResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ProductServiceUpdateProductBody'
+      tags:
+        - ProductService
+  /v1/products/{product_id}/variants:
+    get:
+      operationId: ProductService_GetProductVariants
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/productGetProductVariantsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - ProductService
+  /v1/shipments/{shipment_id}:
+    get:
+      operationId: DeliveryService_GetShipment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/deliveryGetShipmentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: shipment_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - DeliveryService
+  /v1/shipments/{shipment_id}/status:
+    put:
+      operationId: DeliveryService_UpdateShipmentStatus
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/commonEmpty'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: shipment_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/DeliveryServiceUpdateShipmentStatusBody'
+      tags:
+        - DeliveryService
+  /v1/users/login:
+    post:
+      operationId: UserService_LoginUser
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/userLoginUserResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/userLoginUserRequest'
+      tags:
+        - UserService
+  /v1/users/register:
+    post:
+      operationId: UserService_RegisterUser
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/userRegisterUserResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/userRegisterUserRequest'
+      tags:
+        - UserService
+  /v1/users/{user_id}:
+    get:
+      operationId: UserService_GetUser
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/userGetUserResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - UserService
+    put:
+      operationId: UserService_UpdateUser
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/userUpdateUserResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/UserServiceUpdateUserBody'
+      tags:
+        - UserService
+  /v1/users/{user_id}/addresses:
+    get:
+      operationId: UserService_ListAddresses
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/userListAddressesResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - UserService
+    post:
+      operationId: UserService_AddAddress
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/userAddAddressResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/UserServiceAddAddressBody'
+      tags:
+        - UserService
+  /v1/users/{user_id}/addresses/{address_id}:
+    delete:
+      operationId: UserService_DeleteAddress
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/commonEmpty'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          type: string
+        - name: address_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - UserService
+    put:
+      operationId: UserService_UpdateAddress
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/userUpdateAddressResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          type: string
+        - name: address_id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/UserServiceUpdateAddressBody'
+      tags:
+        - UserService
+definitions:
+  DeliveryServiceUpdateShipmentStatusBody:
+    type: object
+    properties:
+      status:
+        $ref: '#/definitions/deliveryShipmentStatus'
+      description:
+        type: string
+  OrderServiceApplyPointsBody:
+    type: object
+    properties:
+      points:
+        type: string
+        format: int64
+  OrderServiceUpdateOrderStatusBody:
+    type: object
+    properties:
+      status:
+        $ref: '#/definitions/orderOrderStatus'
+  PaymentServiceProcessPaymentBody:
+    type: object
+    properties:
+      payment_data:
+        type: object
+        additionalProperties:
+          type: string
+  PaymentServiceRefundPaymentBody:
+    type: object
+    properties:
+      amount:
+        $ref: '#/definitions/commonMoney'
+  ProductServiceUpdateProductBody:
+    type: object
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      category_id:
+        type: string
+      price:
+        $ref: '#/definitions/commonMoney'
+      active:
+        type: boolean
+      image_urls:
+        type: array
+        items:
+          type: string
+  UserServiceAddAddressBody:
+    type: object
+    properties:
+      name:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      prefecture:
+        type: string
+      city:
+        type: string
+      address_line1:
+        type: string
+      address_line2:
+        type: string
+      is_default:
+        type: boolean
+  UserServiceUpdateAddressBody:
+    type: object
+    properties:
+      name:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      prefecture:
+        type: string
+      city:
+        type: string
+      address_line1:
+        type: string
+      address_line2:
+        type: string
+      is_default:
+        type: boolean
+  UserServiceUpdateUserBody:
+    type: object
+    properties:
+      name:
+        type: string
+      phone:
+        type: string
+  commonEmpty:
+    type: object
+  commonMoney:
+    type: object
+    properties:
+      currency:
+        type: string
+      units:
+        type: string
+        format: int64
+      nanos:
+        type: integer
+        format: int32
+  commonPagination:
+    type: object
+    properties:
+      page:
+        type: integer
+        format: int32
+      limit:
+        type: integer
+        format: int32
+      total:
+        type: integer
+        format: int32
+  deliveryDeliveryServiceReserveDeliverySlotBody:
+    type: object
+    properties:
+      order_id:
+        type: string
+  deliveryDeliverySlot:
+    type: object
+    properties:
+      id:
+        type: string
+      delivery_zone_id:
+        type: string
+      start_time:
+        type: string
+        format: date-time
+      end_time:
+        type: string
+        format: date-time
+      capacity:
+        type: integer
+        format: int32
+      reserved:
+        type: integer
+        format: int32
+      available:
+        type: integer
+        format: int32
+      date:
+        type: string
+        format: date-time
+  deliveryGetDeliverySlotsResponse:
+    type: object
+    properties:
+      slots:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/deliveryDeliverySlot'
+  deliveryGetShipmentResponse:
+    type: object
+    properties:
+      shipment:
+        $ref: '#/definitions/deliveryShipment'
+  deliveryShipment:
+    type: object
+    properties:
+      id:
+        type: string
+      order_id:
+        type: string
+      tracking_number:
+        type: string
+      status:
+        $ref: '#/definitions/deliveryShipmentStatus'
+      estimated_delivery_at:
+        type: string
+        format: date-time
+      actual_delivery_at:
+        type: string
+        format: date-time
+      carrier:
+        type: string
+      tracking_events:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/deliveryTrackingEvent'
+  deliveryShipmentStatus:
+    type: string
+    enum:
+      - SHIPMENT_STATUS_UNSPECIFIED
+      - SHIPMENT_STATUS_PREPARING
+      - SHIPMENT_STATUS_SHIPPED
+      - SHIPMENT_STATUS_IN_TRANSIT
+      - SHIPMENT_STATUS_DELIVERED
+      - SHIPMENT_STATUS_CANCELLED
+    default: SHIPMENT_STATUS_UNSPECIFIED
+  deliveryTrackingEvent:
+    type: object
+    properties:
+      id:
+        type: string
+      status:
+        type: string
+      location:
+        type: string
+      timestamp:
+        type: string
+        format: date-time
+      description:
+        type: string
+  inventoryGetStockMovementsResponse:
+    type: object
+    properties:
+      movements:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/inventoryStockMovement'
+      pagination:
+        $ref: '#/definitions/commonPagination'
+  inventoryGetStockResponse:
+    type: object
+    properties:
+      stock:
+        $ref: '#/definitions/inventoryStockItem'
+  inventoryMovementType:
+    type: string
+    enum:
+      - MOVEMENT_TYPE_UNSPECIFIED
+      - MOVEMENT_TYPE_INBOUND
+      - MOVEMENT_TYPE_OUTBOUND
+      - MOVEMENT_TYPE_RESERVATION
+      - MOVEMENT_TYPE_RELEASE
+      - MOVEMENT_TYPE_ADJUSTMENT
+    default: MOVEMENT_TYPE_UNSPECIFIED
+  inventoryReleaseStockRequest:
+    type: object
+    properties:
+      reservation_id:
+        type: string
+  inventoryReserveStockRequest:
+    type: object
+    properties:
+      order_id:
+        type: string
+      items:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/inventoryStockReservationItem'
+      expires_at:
+        type: string
+        format: date-time
+  inventoryReserveStockResponse:
+    type: object
+    properties:
+      reservation_id:
+        type: string
+      success:
+        type: boolean
+      failed_items:
+        type: array
+        items:
+          type: string
+  inventoryStockItem:
+    type: object
+    properties:
+      id:
+        type: string
+      product_id:
+        type: string
+      variant_id:
+        type: string
+      warehouse_id:
+        type: string
+      quantity:
+        type: integer
+        format: int32
+      reserved_quantity:
+        type: integer
+        format: int32
+      available_quantity:
+        type: integer
+        format: int32
+      updated_at:
+        type: string
+        format: date-time
+  inventoryStockMovement:
+    type: object
+    properties:
+      id:
+        type: string
+      stock_item_id:
+        type: string
+      type:
+        $ref: '#/definitions/inventoryMovementType'
+      quantity:
+        type: integer
+        format: int32
+      reference:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+  inventoryStockReservationItem:
+    type: object
+    properties:
+      product_id:
+        type: string
+      variant_id:
+        type: string
+      warehouse_id:
+        type: string
+      quantity:
+        type: integer
+        format: int32
+  inventoryUpdateStockRequest:
+    type: object
+    properties:
+      stock_item_id:
+        type: string
+      product_id:
+        type: string
+      variant_id:
+        type: string
+      warehouse_id:
+        type: string
+      quantity_delta:
+        type: integer
+        format: int32
+      reason:
+        type: string
+      reference:
+        type: string
+  orderApplyPointsResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+      yen_value:
+        $ref: '#/definitions/commonMoney'
+  orderCreateOrderItem:
+    type: object
+    properties:
+      product_id:
+        type: string
+      variant_id:
+        type: string
+      quantity:
+        type: integer
+        format: int32
+  orderCreateOrderRequest:
+    type: object
+    properties:
+      user_id:
+        type: string
+      items:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/orderCreateOrderItem'
+      shipping_address:
+        $ref: '#/definitions/orderShippingAddress'
+      payment_method:
+        $ref: '#/definitions/shinkansenorderPaymentMethod'
+      points_to_apply:
+        type: string
+        format: int64
+      delivery_slot_id:
+        type: string
+  orderCreateOrderResponse:
+    type: object
+    properties:
+      order_id:
+        type: string
+      order_number:
+        type: string
+      status:
+        $ref: '#/definitions/orderOrderStatus'
+  orderGetOrderResponse:
+    type: object
+    properties:
+      order:
+        $ref: '#/definitions/orderOrder'
+  orderListOrdersResponse:
+    type: object
+    properties:
+      orders:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/orderOrder'
+      pagination:
+        $ref: '#/definitions/commonPagination'
+  orderOrder:
+    type: object
+    properties:
+      id:
+        type: string
+      order_number:
+        type: string
+      user_id:
+        type: string
+      status:
+        $ref: '#/definitions/orderOrderStatus'
+      subtotal_amount:
+        $ref: '#/definitions/commonMoney'
+      tax_amount:
+        $ref: '#/definitions/commonMoney'
+      discount_amount:
+        $ref: '#/definitions/commonMoney'
+      total_amount:
+        $ref: '#/definitions/commonMoney'
+      points_applied:
+        type: string
+        format: int64
+      shipping_address:
+        $ref: '#/definitions/orderShippingAddress'
+      payment_method:
+        $ref: '#/definitions/shinkansenorderPaymentMethod'
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      delivery_slot_id:
+        type: string
+      estimated_delivery_at:
+        type: string
+        format: date-time
+      items:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/orderOrderItem'
+  orderOrderItem:
+    type: object
+    properties:
+      id:
+        type: string
+      product_id:
+        type: string
+      variant_id:
+        type: string
+      product_name:
+        type: string
+      quantity:
+        type: integer
+        format: int32
+      unit_price:
+        $ref: '#/definitions/commonMoney'
+      total_price:
+        $ref: '#/definitions/commonMoney'
+  orderOrderServiceReserveDeliverySlotBody:
+    type: object
+    properties:
+      slot_id:
+        type: string
+  orderOrderStatus:
+    type: string
+    enum:
+      - ORDER_STATUS_UNSPECIFIED
+      - ORDER_STATUS_PENDING
+      - ORDER_STATUS_CONFIRMED
+      - ORDER_STATUS_PROCESSING
+      - ORDER_STATUS_SHIPPED
+      - ORDER_STATUS_DELIVERED
+      - ORDER_STATUS_CANCELLED
+      - ORDER_STATUS_REFUNDED
+    default: ORDER_STATUS_UNSPECIFIED
+  orderShippingAddress:
+    type: object
+    properties:
+      name:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      prefecture:
+        type: string
+      city:
+        type: string
+      address_line1:
+        type: string
+      address_line2:
+        type: string
+  paymentCreatePaymentRequest:
+    type: object
+    properties:
+      order_id:
+        type: string
+      method:
+        $ref: '#/definitions/shinkansenpaymentPaymentMethod'
+      amount:
+        $ref: '#/definitions/commonMoney'
+  paymentCreatePaymentResponse:
+    type: object
+    properties:
+      payment_id:
+        type: string
+      status:
+        $ref: '#/definitions/paymentPaymentStatus'
+  paymentGeneratePaymentSlipResponse:
+    type: object
+    properties:
+      payment_id:
+        type: string
+      payment_number:
+        type: string
+      confirmation_number:
+        type: string
+      pdf_slip:
+        type: string
+        format: byte
+      expires_at:
+        type: string
+        format: date-time
+  paymentGetBalanceResponse:
+    type: object
+    properties:
+      available_points:
+        type: string
+        format: int64
+      pending_points:
+        type: string
+        format: int64
+      last_updated:
+        type: string
+        format: date-time
+  paymentGetHistoryResponse:
+    type: object
+    properties:
+      transactions:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/paymentPointTransaction'
+      pagination:
+        $ref: '#/definitions/commonPagination'
+  paymentGetPaymentResponse:
+    type: object
+    properties:
+      payment:
+        $ref: '#/definitions/paymentPayment'
+  paymentKonbiniStore:
+    type: string
+    enum:
+      - KONBINI_STORE_UNSPECIFIED
+      - KONBINI_STORE_SEVENELEVEN
+      - KONBINI_STORE_LAWSON
+      - KONBINI_STORE_FAMILYMART
+      - KONBINI_STORE_MINISTOP
+      - KONBINI_STORE_SEICOMART
+    default: KONBINI_STORE_UNSPECIFIED
+  paymentPayment:
+    type: object
+    properties:
+      id:
+        type: string
+      order_id:
+        type: string
+      method:
+        $ref: '#/definitions/shinkansenpaymentPaymentMethod'
+      amount:
+        $ref: '#/definitions/commonMoney'
+      status:
+        $ref: '#/definitions/paymentPaymentStatus'
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      transaction_id:
+        type: string
+  paymentPaymentStatus:
+    type: string
+    enum:
+      - PAYMENT_STATUS_UNSPECIFIED
+      - PAYMENT_STATUS_PENDING
+      - PAYMENT_STATUS_PROCESSING
+      - PAYMENT_STATUS_COMPLETED
+      - PAYMENT_STATUS_FAILED
+      - PAYMENT_STATUS_CANCELLED
+      - PAYMENT_STATUS_REFUNDED
+    default: PAYMENT_STATUS_UNSPECIFIED
+  paymentPointTransaction:
+    type: object
+    properties:
+      id:
+        type: string
+      user_id:
+        type: string
+      amount:
+        type: string
+        format: int64
+      type:
+        $ref: '#/definitions/paymentPointTransactionType'
+      reason:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+  paymentPointTransactionType:
+    type: string
+    enum:
+      - POINT_TRANSACTION_TYPE_UNSPECIFIED
+      - POINT_TRANSACTION_TYPE_EARNED
+      - POINT_TRANSACTION_TYPE_REDEEMED
+      - POINT_TRANSACTION_TYPE_EXPIRED
+      - POINT_TRANSACTION_TYPE_ADJUSTED
+    default: POINT_TRANSACTION_TYPE_UNSPECIFIED
+  paymentProcessPaymentResponse:
+    type: object
+    properties:
+      status:
+        $ref: '#/definitions/paymentPaymentStatus'
+      transaction_id:
+        type: string
+  paymentRedeemPointsResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+      yen_value:
+        $ref: '#/definitions/commonMoney'
+      transaction_id:
+        type: string
+  paymentVerifyPaymentResponse:
+    type: object
+    properties:
+      verified:
+        type: boolean
+      paid_at:
+        type: string
+        format: date-time
+  productCreateProductRequest:
+    type: object
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      category_id:
+        type: string
+      price:
+        $ref: '#/definitions/commonMoney'
+      sku:
+        type: string
+      image_urls:
+        type: array
+        items:
+          type: string
+      stock_quantity:
+        type: integer
+        format: int32
+  productCreateProductResponse:
+    type: object
+    properties:
+      product_id:
+        type: string
+  productGetProductResponse:
+    type: object
+    properties:
+      product:
+        $ref: '#/definitions/productProduct'
+  productGetProductVariantsResponse:
+    type: object
+    properties:
+      variants:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/productProductVariant'
+  productListProductsResponse:
+    type: object
+    properties:
+      products:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/productProduct'
+      pagination:
+        $ref: '#/definitions/commonPagination'
+  productProduct:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      category_id:
+        type: string
+      price:
+        $ref: '#/definitions/commonMoney'
+      sku:
+        type: string
+      active:
+        type: boolean
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      image_urls:
+        type: array
+        items:
+          type: string
+      stock_quantity:
+        type: integer
+        format: int32
+  productProductVariant:
+    type: object
+    properties:
+      id:
+        type: string
+      product_id:
+        type: string
+      name:
+        type: string
+      attributes:
+        type: object
+        additionalProperties:
+          type: string
+      price:
+        $ref: '#/definitions/commonMoney'
+      sku:
+        type: string
+      stock_quantity:
+        type: integer
+        format: int32
+  productSearchProductsResponse:
+    type: object
+    properties:
+      products:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/productProduct'
+      pagination:
+        $ref: '#/definitions/commonPagination'
+  productUpdateProductResponse:
+    type: object
+    properties:
+      product:
+        $ref: '#/definitions/productProduct'
+  protobufAny:
+    type: object
+    properties:
+      '@type':
+        type: string
+    additionalProperties: {}
+  rpcStatus:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      details:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/protobufAny'
+  shinkansendeliveryReserveDeliverySlotResponse:
+    type: object
+    properties:
+      reservation_id:
+        type: string
+      reserved_at:
+        type: string
+        format: date-time
+  shinkansenorderPaymentMethod:
+    type: string
+    enum:
+      - PAYMENT_METHOD_UNSPECIFIED
+      - PAYMENT_METHOD_CREDIT_CARD
+      - PAYMENT_METHOD_KONBINI_SEVENELEVEN
+      - PAYMENT_METHOD_KONBINI_LAWSON
+      - PAYMENT_METHOD_KONBINI_FAMILYMART
+      - PAYMENT_METHOD_PAYPAY
+      - PAYMENT_METHOD_RAKUTEN_PAY
+    default: PAYMENT_METHOD_UNSPECIFIED
+  shinkansenorderReserveDeliverySlotResponse:
+    type: object
+    properties:
+      reservation_id:
+        type: string
+  shinkansenpaymentPaymentMethod:
+    type: string
+    enum:
+      - PAYMENT_METHOD_UNSPECIFIED
+      - PAYMENT_METHOD_CREDIT_CARD
+      - PAYMENT_METHOD_KONBINI_SEVENELEVEN
+      - PAYMENT_METHOD_KONBINI_LAWSON
+      - PAYMENT_METHOD_KONBINI_FAMILYMART
+      - PAYMENT_METHOD_PAYPAY
+      - PAYMENT_METHOD_RAKUTEN_PAY
+    default: PAYMENT_METHOD_UNSPECIFIED
+  userAddAddressResponse:
+    type: object
+    properties:
+      address_id:
+        type: string
+  userAddress:
+    type: object
+    properties:
+      id:
+        type: string
+      user_id:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      prefecture:
+        type: string
+      city:
+        type: string
+      address_line1:
+        type: string
+      address_line2:
+        type: string
+      is_default:
+        type: boolean
+      created_at:
+        type: string
+        format: date-time
+  userGetUserResponse:
+    type: object
+    properties:
+      user:
+        $ref: '#/definitions/userUser'
+  userListAddressesResponse:
+    type: object
+    properties:
+      addresses:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/userAddress'
+  userLoginUserRequest:
+    type: object
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+  userLoginUserResponse:
+    type: object
+    properties:
+      user_id:
+        type: string
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+  userRegisterUserRequest:
+    type: object
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+  userRegisterUserResponse:
+    type: object
+    properties:
+      user_id:
+        type: string
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+  userUpdateAddressResponse:
+    type: object
+    properties:
+      address:
+        $ref: '#/definitions/userAddress'
+  userUpdateUserResponse:
+    type: object
+    properties:
+      user:
+        $ref: '#/definitions/userUser'
+  userUser:
+    type: object
+    properties:
+      id:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      active:
+        type: boolean
