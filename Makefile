@@ -243,10 +243,9 @@ format-python: uv-install ## Format Python code
 	cd services/analytics-worker && uv run ruff format .
 
 # --- Database ---
-DATABASE_URL := localhost:5432
 db-migrate: ## Run database migrations
 	@echo "🗄️  Running database migrations..."
-	cd services/product-service && migrate -path internal/migrations -database "${DATABASE_URL}" up
+	cd services/product-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
 	cd services/order-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
 	cd services/payment-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
 	cd services/user-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
