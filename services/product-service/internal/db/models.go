@@ -8,22 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// Product categories for hierarchical organization
-type CatalogCategories struct {
-	// Unique category identifier
-	ID pgtype.UUID `json:"id"`
-	// Category name
-	Name string `json:"name"`
-	// Parent category identifier (for hierarchical structure)
-	ParentID pgtype.UUID `json:"parent_id"`
-	// Category depth level (0 = root, 1 = second level, etc.)
-	Level *int32 `json:"level"`
-	// Creation timestamp
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	// Last update timestamp
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-}
-
 // Product variants (sizes, colors, etc.)
 type CatalogProductVariants struct {
 	// Unique variant identifier
@@ -46,32 +30,4 @@ type CatalogProductVariants struct {
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	// Last update timestamp
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-}
-
-// Product catalog items
-type CatalogProducts struct {
-	// Unique product identifier
-	ID pgtype.UUID `json:"id"`
-	// Product name
-	Name string `json:"name"`
-	// Product description (HTML)
-	Description *string `json:"description"`
-	// Category identifier
-	CategoryID pgtype.UUID `json:"category_id"`
-	// Stock Keeping Unit
-	Sku string `json:"sku"`
-	// Price in minor units (yen has no minor units)
-	PriceUnits int64 `json:"price_units"`
-	// Currency code (JPY)
-	PriceCurrency string `json:"price_currency"`
-	// Is product active for sale
-	Active *bool `json:"active"`
-	// Available stock quantity
-	StockQuantity *int32 `json:"stock_quantity"`
-	// Creation timestamp
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	// Last update timestamp
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-	// Soft delete timestamp
-	DeletedAt pgtype.Timestamp `json:"deleted_at"`
 }
