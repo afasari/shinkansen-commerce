@@ -26,7 +26,7 @@ var File_product_product_service_proto protoreflect.FileDescriptor
 
 const file_product_product_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1dproduct/product_service.proto\x12\x12shinkansen.product\x1a\x13shared/common.proto\x1a\x1eproduct/product_messages.proto\x1a\x1cgoogle/api/annotations.proto2\xb6\a\n" +
+	"\x1dproduct/product_service.proto\x12\x12shinkansen.product\x1a\x1cgoogle/api/annotations.proto\x1a\x1eproduct/product_messages.proto\x1a\x13shared/common.proto2\xb6\a\n" +
 	"\x0eProductService\x12w\n" +
 	"\fListProducts\x12'.shinkansen.product.ListProductsRequest\x1a(.shinkansen.product.ListProductsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/products\x12~\n" +
 	"\n" +

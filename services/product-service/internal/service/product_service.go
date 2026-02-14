@@ -2,17 +2,17 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"time"
 
-	"github.com/google/uuid"
 	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
 	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
 	"github.com/afasari/shinkansen-commerce/services/product-service/internal/cache"
 	"github.com/afasari/shinkansen-commerce/services/product-service/internal/db"
+	"github.com/afasari/shinkansen-commerce/services/product-service/internal/pkg/pgutil"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/timestamppb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type ProductService struct {
@@ -33,20 +33,29 @@ func NewProductService(queries db.Querier, cacheClient cache.Cache, logger *zap.
 func (s *ProductService) CreateProduct(ctx context.Context, req *productpb.CreateProductRequest) (*productpb.CreateProductResponse, error) {
 	s.logger.Info("Creating product", zap.String("name", req.Name))
 
-	var categoryID *uuid.UUID
+	var categoryID pgtype.UUID
 	if req.CategoryId != "" {
-		id := uuid.MustParse(req.CategoryId)
-		categoryID = &id
+		categoryID = pgutil.ToPG(uuid.MustParse(req.CategoryId))
+	}
+
+	name := req.Name
+	description := req.Description
+	priceUnits := req.Price.Units
+	priceCurrency := req.Price.Currency
+	sku := req.Sku
+	var stockQty *int32
+	if req.StockQuantity > 0 {
+		stockQty = &req.StockQuantity
 	}
 
 	productID, err := s.queries.CreateProduct(ctx, db.CreateProductParams{
-		Name:          req.Name,
-		Description:   &req.Description,
+		Name:          &name,
+		Description:   &description,
 		CategoryID:    categoryID,
-		PriceUnits:    req.Price.Units,
-		PriceCurrency: req.Price.Currency,
-		Sku:           req.Sku,
-		StockQuantity: req.StockQuantity,
+		PriceUnits:    &priceUnits,
+		PriceCurrency: &priceCurrency,
+		Sku:           &sku,
+		StockQuantity: stockQty,
 	})
 	if err != nil {
 		s.logger.Error("Failed to create product", zap.Error(err))
@@ -54,24 +63,24 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *productpb.Creat
 	}
 
 	return &productpb.CreateProductResponse{
-		ProductId: productID.String(),
+		ProductId: pgutil.FromPG(productID),
 	}, nil
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, req *productpb.GetProductRequest) (*productpb.GetProductResponse, error) {
 	cacheKey := cache.ProductCacheKey(req.ProductId)
-	var cached db.Product
+	var cached db.GetProductRow
 
 	if err := s.cache.Get(ctx, cacheKey, &cached); err == nil {
 		s.logger.Debug("Product cache hit", zap.String("product_id", req.ProductId))
 		return &productpb.GetProductResponse{
-			Product: s.productToProto(cached),
+			Product: s.productRowToProto(cached),
 		}, nil
 	}
 
 	s.logger.Debug("Product cache miss", zap.String("product_id", req.ProductId))
 
-	productID := uuid.MustParse(req.ProductId)
+	productID := pgutil.ToPG(uuid.MustParse(req.ProductId))
 	product, err := s.queries.GetProduct(ctx, productID)
 	if err != nil {
 		s.logger.Error("Failed to get product", zap.String("product_id", req.ProductId), zap.Error(err))
@@ -83,7 +92,7 @@ func (s *ProductService) GetProduct(ctx context.Context, req *productpb.GetProdu
 	}
 
 	return &productpb.GetProductResponse{
-		Product: s.productToProto(product),
+		Product: s.productRowToProto(product),
 	}, nil
 }
 
@@ -93,17 +102,19 @@ func (s *ProductService) ListProducts(ctx context.Context, req *productpb.ListPr
 		zap.Bool("active_only", req.ActiveOnly),
 	)
 
-	var categoryID *uuid.UUID
+	var categoryID pgtype.UUID
 	if req.CategoryId != "" {
-		id := uuid.MustParse(req.CategoryId)
-		categoryID = &id
+		categoryID = pgutil.ToPG(uuid.MustParse(req.CategoryId))
 	}
 
+	activeOnly := req.ActiveOnly
+	offset := (req.Pagination.Page - 1) * req.Pagination.Limit
+	limit := req.Pagination.Limit
 	products, err := s.queries.ListProducts(ctx, db.ListProductsParams{
 		CategoryID: categoryID,
-		ActiveOnly: req.ActiveOnly,
-		Limit:      req.Pagination.Limit,
-		Offset:     (req.Pagination.Page - 1) * req.Pagination.Limit,
+		ActiveOnly: &activeOnly,
+		Offset:     &offset,
+		Limit:      &limit,
 	})
 	if err != nil {
 		s.logger.Error("Failed to list products", zap.Error(err))
@@ -112,7 +123,7 @@ func (s *ProductService) ListProducts(ctx context.Context, req *productpb.ListPr
 
 	var productList []*productpb.Product
 	for _, p := range products {
-		productList = append(productList, s.productToProto(p))
+		productList = append(productList, s.listProductRowToProto(p))
 	}
 
 	return &productpb.ListProductsResponse{
@@ -124,6 +135,13 @@ func (s *ProductService) ListProducts(ctx context.Context, req *productpb.ListPr
 func (s *ProductService) UpdateProduct(ctx context.Context, req *productpb.UpdateProductRequest) (*productpb.UpdateProductResponse, error) {
 	s.logger.Info("Updating product", zap.String("product_id", req.ProductId))
 
+	id := pgutil.ToPG(uuid.MustParse(req.ProductId))
+
+	var categoryID pgtype.UUID
+	if req.CategoryId != nil {
+		categoryID = pgutil.ToPG(uuid.MustParse(req.CategoryId.Value))
+	}
+
 	var name *string
 	if req.Name != nil {
 		name = &req.Name.Value
@@ -134,30 +152,23 @@ func (s *ProductService) UpdateProduct(ctx context.Context, req *productpb.Updat
 		description = &req.Description.Value
 	}
 
-	var categoryID *uuid.UUID
-	if req.CategoryId != nil {
-		id := uuid.MustParse(req.CategoryId.Value)
-		categoryID = &id
-	}
-
 	var priceUnits *int64
 	if req.Price != nil {
 		priceUnits = &req.Price.Units
 	}
 
-	var priceCurrency *string
-	if req.Price != nil {
-		priceCurrency = &req.Price.Currency
+	var active *bool
+	if req.Active != nil {
+		active = &req.Active.Value
 	}
 
 	updatedProduct, err := s.queries.UpdateProduct(ctx, db.UpdateProductParams{
-		ID:            uuid.MustParse(req.ProductId),
-		Name:          name,
-		Description:   description,
-		CategoryID:    categoryID,
-		PriceUnits:    priceUnits,
-		PriceCurrency: priceCurrency,
-		Active:        activePtr(req.Active),
+		ID:          id,
+		Name:        name,
+		Description: description,
+		CategoryID:  categoryID,
+		PriceUnits:  priceUnits,
+		Active:      active,
 	})
 	if err != nil {
 		s.logger.Error("Failed to update product", zap.String("product_id", req.ProductId), zap.Error(err))
@@ -170,14 +181,14 @@ func (s *ProductService) UpdateProduct(ctx context.Context, req *productpb.Updat
 	}
 
 	return &productpb.UpdateProductResponse{
-		Product: s.productToProto(updatedProduct),
+		Product: s.updateProductRowToProto(updatedProduct),
 	}, nil
 }
 
 func (s *ProductService) DeleteProduct(ctx context.Context, req *productpb.DeleteProductRequest) (*sharedpb.Empty, error) {
 	s.logger.Info("Deleting product", zap.String("product_id", req.ProductId))
 
-	productID := uuid.MustParse(req.ProductId)
+	productID := pgutil.ToPG(uuid.MustParse(req.ProductId))
 	if err := s.queries.DeleteProduct(ctx, productID); err != nil {
 		s.logger.Error("Failed to delete product", zap.String("product_id", req.ProductId), zap.Error(err))
 		return nil, fmt.Errorf("failed to delete product: %w", err)
@@ -194,10 +205,9 @@ func (s *ProductService) DeleteProduct(ctx context.Context, req *productpb.Delet
 func (s *ProductService) SearchProducts(ctx context.Context, req *productpb.SearchProductsRequest) (*productpb.SearchProductsResponse, error) {
 	s.logger.Info("Searching products", zap.String("query", req.Query))
 
-	var categoryID *uuid.UUID
+	var categoryID pgtype.UUID
 	if req.CategoryId != "" {
-		id := uuid.MustParse(req.CategoryId)
-		categoryID = &id
+		categoryID = pgutil.ToPG(uuid.MustParse(req.CategoryId))
 	}
 
 	var minPrice *int64
@@ -210,14 +220,22 @@ func (s *ProductService) SearchProducts(ctx context.Context, req *productpb.Sear
 		maxPrice = &req.MaxPrice.Units
 	}
 
+	var inStockOnly *bool
+	if req.InStockOnly {
+		inStockOnly = &req.InStockOnly
+	}
+
+	query := req.Query
+	offset := (req.Pagination.Page - 1) * req.Pagination.Limit
+	limit := req.Pagination.Limit
 	products, err := s.queries.SearchProducts(ctx, db.SearchProductsParams{
-		Query:       req.Query,
+		Query:       &query,
 		CategoryID:  categoryID,
 		MinPrice:    minPrice,
 		MaxPrice:    maxPrice,
-		InStockOnly: req.InStockOnly,
-		Limit:       req.Pagination.Limit,
-		Offset:      (req.Pagination.Page - 1) * req.Pagination.Limit,
+		InStockOnly: inStockOnly,
+		Offset:      &offset,
+		Limit:       &limit,
 	})
 	if err != nil {
 		s.logger.Error("Failed to search products", zap.Error(err))
@@ -226,7 +244,7 @@ func (s *ProductService) SearchProducts(ctx context.Context, req *productpb.Sear
 
 	var productList []*productpb.Product
 	for _, p := range products {
-		productList = append(productList, s.productToProto(p))
+		productList = append(productList, s.searchProductRowToProto(p))
 	}
 
 	return &productpb.SearchProductsResponse{
@@ -238,7 +256,7 @@ func (s *ProductService) SearchProducts(ctx context.Context, req *productpb.Sear
 func (s *ProductService) GetProductVariants(ctx context.Context, req *productpb.GetProductVariantsRequest) (*productpb.GetProductVariantsResponse, error) {
 	s.logger.Info("Getting product variants", zap.String("product_id", req.ProductId))
 
-	productID := uuid.MustParse(req.ProductId)
+	productID := pgutil.ToPG(uuid.MustParse(req.ProductId))
 	variants, err := s.queries.GetProductVariants(ctx, productID)
 	if err != nil {
 		s.logger.Error("Failed to get product variants", zap.String("product_id", req.ProductId), zap.Error(err))
@@ -255,63 +273,80 @@ func (s *ProductService) GetProductVariants(ctx context.Context, req *productpb.
 	}, nil
 }
 
-func (s *ProductService) productToProto(p db.Product) *productpb.Product {
-	categoryID := ""
-	if p.CategoryID != nil {
-		categoryID = p.CategoryID.String()
+func (s *ProductService) productRowToProto(p db.GetProductRow) *productpb.Product {
+	return s.getProductBase(p.ID, p.Name, p.Description, p.CategoryID, p.PriceUnits, p.PriceCurrency, p.Sku, p.Active, p.StockQuantity)
+}
+
+func (s *ProductService) listProductRowToProto(p db.ListProductsRow) *productpb.Product {
+	return s.getProductBase(p.ID, p.Name, p.Description, p.CategoryID, p.PriceUnits, p.PriceCurrency, p.Sku, p.Active, p.StockQuantity)
+}
+
+func (s *ProductService) updateProductRowToProto(p db.UpdateProductRow) *productpb.Product {
+	return s.getProductBase(p.ID, p.Name, p.Description, p.CategoryID, p.PriceUnits, p.PriceCurrency, p.Sku, p.Active, p.StockQuantity)
+}
+
+func (s *ProductService) searchProductRowToProto(p db.SearchProductsRow) *productpb.Product {
+	return s.getProductBase(p.ID, p.Name, p.Description, p.CategoryID, p.PriceUnits, p.PriceCurrency, p.Sku, p.Active, p.StockQuantity)
+}
+
+func (s *ProductService) getProductBase(id pgtype.UUID, name string, description *string, categoryID pgtype.UUID, priceUnits int64, priceCurrency string, sku string, active *bool, stockQuantity *int32) *productpb.Product {
+	desc := ""
+	if description != nil {
+		desc = *description
 	}
 
-	description := ""
-	if p.Description != nil {
-		description = *p.Description
+	activeVal := false
+	if active != nil {
+		activeVal = *active
+	}
+
+	stockQty := int32(0)
+	if stockQuantity != nil {
+		stockQty = *stockQuantity
 	}
 
 	return &productpb.Product{
-		Id:            p.ID.String(),
-		Name:          p.Name,
-		Description:   description,
-		CategoryId:    categoryID,
-		Price:         s.moneyToProto(p.PriceUnits, p.PriceCurrency),
-		Sku:           p.Sku,
-		Active:        p.Active,
-		CreatedAt:     protoTime(p.CreatedAt),
-		UpdatedAt:     protoTime(p.UpdatedAt),
-		StockQuantity: p.StockQuantity,
+		Id:          pgutil.FromPG(id),
+		Name:        name,
+		Description: desc,
+		CategoryId:  pgutil.FromPG(categoryID),
+		Price: &sharedpb.Money{
+			Units:    priceUnits,
+			Currency: priceCurrency,
+		},
+		Sku:           sku,
+		Active:        activeVal,
+		StockQuantity: stockQty,
 		ImageUrls:     []string{},
 	}
 }
 
-func (s *ProductService) variantToProto(v db.ProductVariant) *productpb.ProductVariant {
+func (s *ProductService) variantToProto(v db.CatalogProductVariants) *productpb.ProductVariant {
 	sku := ""
-	if v.Sku != "" {
-		sku = v.Sku
+	if v.Sku != nil {
+		sku = *v.Sku
+	}
+
+	stockQty := int32(0)
+	if v.StockQuantity != nil {
+		stockQty = *v.StockQuantity
+	}
+
+	attributes := make(map[string]string)
+	if len(v.Attributes) > 0 {
+		_ = json.Unmarshal(v.Attributes, &attributes)
 	}
 
 	return &productpb.ProductVariant{
-		Id:            v.ID.String(),
-		ProductId:     v.ProductID.String(),
-		Name:          v.Name,
-		Price:         s.moneyToProto(v.PriceUnits, v.PriceCurrency),
+		Id:        pgutil.FromPG(v.ID),
+		ProductId: pgutil.FromPG(v.ProductID),
+		Name:      v.Name,
+		Price: &sharedpb.Money{
+			Units:    v.PriceUnits,
+			Currency: v.PriceCurrency,
+		},
 		Sku:           sku,
-		StockQuantity: v.StockQuantity,
-		Attributes:    v.Attributes,
+		StockQuantity: stockQty,
+		Attributes:    attributes,
 	}
-}
-
-func (s *ProductService) moneyToProto(units int64, currency string) *sharedpb.Money {
-	return &sharedpb.Money{
-		Units:    units,
-		Currency: currency,
-	}
-}
-
-func protoTime(t time.Time) *timestamppb.Timestamp {
-	return timestamppb.New(t)
-}
-
-func activePtr(val *wrapperspb.BoolValue) *bool {
-	if val == nil {
-		return nil
-	}
-	return &val.Value
 }

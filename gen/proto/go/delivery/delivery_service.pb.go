@@ -26,7 +26,7 @@ var File_delivery_delivery_service_proto protoreflect.FileDescriptor
 
 const file_delivery_delivery_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1fdelivery/delivery_service.proto\x12\x13shinkansen.delivery\x1a\x13shared/common.proto\x1a delivery/delivery_messages.proto\x1a\x1cgoogle/api/annotations.proto2\xdf\x04\n" +
+	"\x1fdelivery/delivery_service.proto\x12\x13shinkansen.delivery\x1a delivery/delivery_messages.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x13shared/common.proto2\xdf\x04\n" +
 	"\x0fDeliveryService\x12\x8b\x01\n" +
 	"\x10GetDeliverySlots\x12,.shinkansen.delivery.GetDeliverySlotsRequest\x1a-.shinkansen.delivery.GetDeliverySlotsResponse\"\x1a\x82\xd3\xe4\x93\x02\x14\x12\x12/v1/delivery/slots\x12\xa1\x01\n" +
 	"\x13ReserveDeliverySlot\x12/.shinkansen.delivery.ReserveDeliverySlotRequest\x1a0.shinkansen.delivery.ReserveDeliverySlotResponse\"'\x82\xd3\xe4\x93\x02!:\x01*\"\x1c/v1/delivery/slots/{slot_id}\x12\x85\x01\n" +

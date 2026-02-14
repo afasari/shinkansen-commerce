@@ -26,7 +26,7 @@ var File_user_user_service_proto protoreflect.FileDescriptor
 
 const file_user_user_service_proto_rawDesc = "" +
 	"\n" +
-	"\x17user/user_service.proto\x12\x0fshinkansen.user\x1a\x13shared/common.proto\x1a\x18user/user_messages.proto\x1a\x1cgoogle/api/annotations.proto2\x83\b\n" +
+	"\x17user/user_service.proto\x12\x0fshinkansen.user\x1a\x1cgoogle/api/annotations.proto\x1a\x13shared/common.proto\x1a\x18user/user_messages.proto2\x83\b\n" +
 	"\vUserService\x12z\n" +
 	"\fRegisterUser\x12$.shinkansen.user.RegisterUserRequest\x1a%.shinkansen.user.RegisterUserResponse\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/users/register\x12n\n" +
 	"\tLoginUser\x12!.shinkansen.user.LoginUserRequest\x1a\".shinkansen.user.LoginUserResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/users/login\x12i\n" +

@@ -571,7 +571,7 @@ var File_payment_points_proto protoreflect.FileDescriptor
 
 const file_payment_points_proto_rawDesc = "" +
 	"\n" +
-	"\x14payment/points.proto\x12\x12shinkansen.payment\x1a\x13shared/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\",\n" +
+	"\x14payment/points.proto\x12\x12shinkansen.payment\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x13shared/common.proto\",\n" +
 	"\x11GetBalanceRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xa5\x01\n" +
 	"\x12GetBalanceResponse\x12)\n" +

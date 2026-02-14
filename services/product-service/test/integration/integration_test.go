@@ -11,6 +11,7 @@ import (
 	"github.com/afasari/shinkansen-commerce/services/product-service/internal/cache"
 	"github.com/afasari/shinkansen-commerce/services/product-service/internal/db"
 	"github.com/afasari/shinkansen-commerce/services/product-service/internal/service"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -21,10 +22,10 @@ func setupIntegrationTest(t *testing.T) (*service.ProductService, func()) {
 	logger := zap.NewNop()
 	defer func() { _ = logger.Sync() }()
 
-	dbpool, err := db.New("postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen?sslmode=disable")
+	dbpool, err := pgxpool.New(context.Background(), "postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen?sslmode=disable")
 	require.NoError(t, err, "failed to connect to database")
 
-	queries := db.NewQueries(dbpool)
+	queries := db.New(dbpool)
 
 	redisClient := cache.NewRedisClient("localhost:6379")
 	cacheClient := cache.NewRedisCache(redisClient)

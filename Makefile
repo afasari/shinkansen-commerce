@@ -72,7 +72,21 @@ proto-format: ## Format protobuf files
 	buf format -w proto
 
  sqlc-gen: ## Generate SQL code for Go services
-	@echo "✅ SQL code generation skipped (using hand-written code)"
+	@echo "🔄 Generating SQL code for Product Service..."
+	cd services/product-service && sqlc generate
+	@echo "✅ Product Service SQL generated"
+	@echo "🔄 Generating SQL code for Order Service..."
+	cd services/order-service && sqlc generate
+	@echo "✅ Order Service SQL generated"
+	# @echo "🔄 Generating SQL code for Payment Service..."
+	# cd services/payment-service && sqlc generate
+	# @echo "✅ Payment Service SQL generated"
+	# @echo "🔄 Generating SQL code for User Service..."
+	# cd services/user-service && sqlc generate
+	# @echo "✅ User Service SQL generated"
+	# @echo "🔄 Generating SQL code for Delivery Service..."
+	# cd services/delivery-service && sqlc generate
+	# @echo "✅ Delivery Service SQL generated"
 
  gen: proto-gen proto-openapi-gen ## Generate all code (protobuf + sqlc + openapi)
 

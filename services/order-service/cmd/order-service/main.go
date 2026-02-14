@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/config"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/db"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/service"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -31,13 +33,13 @@ func main() {
 	}
 	defer func() { _ = logger.Sync() }()
 
-	dbpool, err := db.New(cfg.DatabaseURL)
+	dbpool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	defer dbpool.Close()
 
-	queries := db.NewQueries(dbpool)
+	queries := db.New(dbpool)
 	redisClient := cache.NewRedisClient(cfg.RedisURL)
 	cacheClient := cache.NewRedisCache(redisClient)
 

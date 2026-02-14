@@ -393,7 +393,7 @@ var File_payment_konbini_proto protoreflect.FileDescriptor
 
 const file_payment_konbini_proto_rawDesc = "" +
 	"\n" +
-	"\x15payment/konbini.proto\x12\x12shinkansen.payment\x1a\x13shared/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xde\x01\n" +
+	"\x15payment/konbini.proto\x12\x12shinkansen.payment\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13shared/common.proto\"\xde\x01\n" +
 	"\x1aGeneratePaymentSlipRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x120\n" +
 	"\x06amount\x18\x02 \x01(\v2\x18.shinkansen.common.MoneyR\x06amount\x126\n" +

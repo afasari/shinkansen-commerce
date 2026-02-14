@@ -1060,7 +1060,7 @@ var File_product_product_messages_proto protoreflect.FileDescriptor
 
 const file_product_product_messages_proto_rawDesc = "" +
 	"\n" +
-	"\x1eproduct/product_messages.proto\x12\x12shinkansen.product\x1a\x13shared/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x86\x03\n" +
+	"\x1eproduct/product_messages.proto\x12\x12shinkansen.product\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x13shared/common.proto\"\x86\x03\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +

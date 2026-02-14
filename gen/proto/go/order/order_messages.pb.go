@@ -1209,7 +1209,7 @@ var File_order_order_messages_proto protoreflect.FileDescriptor
 
 const file_order_order_messages_proto_rawDesc = "" +
 	"\n" +
-	"\x1aorder/order_messages.proto\x12\x10shinkansen.order\x1a\x13shared/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x84\a\n" +
+	"\x1aorder/order_messages.proto\x12\x10shinkansen.order\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x13shared/common.proto\"\x84\a\n" +
 	"\x05Order\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\forder_number\x18\x02 \x01(\tR\vorderNumber\x12\x17\n" +

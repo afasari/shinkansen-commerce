@@ -3,12 +3,12 @@
 -- :id, :name, :description, :category_id, :price_units, :active
 UPDATE catalog.products
 SET
-    name = COALESCE($2, name),
-    description = COALESCE($3, description),
-    category_id = COALESCE($4, category_id),
-    price_units = COALESCE($5, price_units),
-    active = COALESCE($6, active),
+    name = COALESCE(sqlc.narg('name'), name),
+    description = COALESCE(sqlc.narg('description'), description),
+    category_id = COALESCE(sqlc.narg('category_id'), category_id),
+    price_units = COALESCE(sqlc.narg('price_units'), price_units),
+    active = COALESCE(sqlc.narg('active'), active),
     updated_at = NOW()
-WHERE id = $1
+WHERE id = sqlc.narg('id')
   AND deleted_at IS NULL
-RETURNING *;
+RETURNING id, name, description, category_id, price_units, price_currency, sku, active, stock_quantity, created_at, updated_at;

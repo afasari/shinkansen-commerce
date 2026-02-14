@@ -26,7 +26,7 @@ var File_order_order_service_proto protoreflect.FileDescriptor
 
 const file_order_order_service_proto_rawDesc = "" +
 	"\n" +
-	"\x19order/order_service.proto\x12\x10shinkansen.order\x1a\x13shared/common.proto\x1a\x1aorder/order_messages.proto\x1a\x1cgoogle/api/annotations.proto2\x93\a\n" +
+	"\x19order/order_service.proto\x12\x10shinkansen.order\x1a\x1cgoogle/api/annotations.proto\x1a\x1aorder/order_messages.proto\x1a\x13shared/common.proto2\x93\a\n" +
 	"\fOrderService\x12q\n" +
 	"\vCreateOrder\x12$.shinkansen.order.CreateOrderRequest\x1a%.shinkansen.order.CreateOrderResponse\"\x15\x82\xd3\xe4\x93\x02\x0f:\x01*\"\n" +
 	"/v1/orders\x12p\n" +

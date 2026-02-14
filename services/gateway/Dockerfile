@@ -20,8 +20,8 @@ WORKDIR /root
 RUN mkdir -p /docs/api
 
 # Copy swagger files
-COPY --from=builder /app/services/gateway/cmd/gateway/api/swagger.yaml /docs/api/swagger.yaml
-COPY --from=builder /app/services/gateway/cmd/gateway/api/index.html /docs/api/index.html
+COPY --from=builder /app/services/gateway/docs/api/swagger.yaml /docs/api/swagger.yaml
+COPY --from=builder /app/services/gateway/docs/api/index.html /docs/api/index.html
 
 COPY --from=builder /app/gateway /root/gateway
 

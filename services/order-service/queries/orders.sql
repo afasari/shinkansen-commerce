@@ -1,6 +1,6 @@
--- name: CreateOrder :exec
+-- name: CreateOrder :one
 INSERT INTO orders.orders (
-    order_number, user_id, status, 
+    order_number, user_id, status,
     subtotal_units, subtotal_currency,
     tax_units, tax_currency,
     discount_units, discount_currency,
@@ -10,7 +10,7 @@ INSERT INTO orders.orders (
 RETURNING id;
 
 -- name: GetOrder :one
-SELECT id, order_number, user_id, status, 
+SELECT id, order_number, user_id, status,
        subtotal_units, subtotal_currency,
        tax_units, tax_currency,
        discount_units, discount_currency,

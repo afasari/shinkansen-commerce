@@ -605,7 +605,7 @@ var File_payment_payment_messages_proto protoreflect.FileDescriptor
 
 const file_payment_payment_messages_proto_rawDesc = "" +
 	"\n" +
-	"\x1epayment/payment_messages.proto\x12\x12shinkansen.payment\x1a\x13shared/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf9\x02\n" +
+	"\x1epayment/payment_messages.proto\x12\x12shinkansen.payment\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13shared/common.proto\"\xf9\x02\n" +
 	"\aPayment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\tR\aorderId\x129\n" +

@@ -3,4 +3,4 @@
 -- :id
 UPDATE catalog.products
 SET deleted_at = NOW(), active = false
-WHERE id = $1;
+WHERE id = sqlc.narg('id');

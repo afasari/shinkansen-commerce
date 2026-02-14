@@ -809,7 +809,7 @@ var File_inventory_inventory_messages_proto protoreflect.FileDescriptor
 
 const file_inventory_inventory_messages_proto_rawDesc = "" +
 	"\n" +
-	"\"inventory/inventory_messages.proto\x12\x14shinkansen.inventory\x1a\x13shared/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x02\n" +
+	"\"inventory/inventory_messages.proto\x12\x14shinkansen.inventory\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13shared/common.proto\"\xaf\x02\n" +
 	"\tStockItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +

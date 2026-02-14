@@ -2,15 +2,17 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"time"
 
 	orderpb "github.com/afasari/shinkansen-commerce/gen/proto/go/order"
 	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
 	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/cache"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/db"
+	"github.com/afasari/shinkansen-commerce/services/order-service/internal/pkg/pgutil"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -62,7 +64,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 	orderNumber := fmt.Sprintf("ORD-%d", uuid.New().ID())
 
 	orderID, err := s.queries.CreateOrder(ctx, db.CreateOrderParams{
-		UserId:           uuid.MustParse(req.UserId),
+		UserID:           pgutil.ToPG(uuid.MustParse(req.UserId)),
 		Status:           int32(orderpb.OrderStatus_ORDER_STATUS_PENDING),
 		SubtotalUnits:    subtotalUnits,
 		SubtotalCurrency: "JPY",
@@ -73,13 +75,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 		TotalUnits:       totalUnits,
 		TotalCurrency:    "JPY",
 		PointsApplied:    0,
-		ShippingAddress:  s.addressToMap(req.ShippingAddress),
+		ShippingAddress:  s.addressToBytes(req.ShippingAddress),
 		PaymentMethod:    int32(req.PaymentMethod),
 	})
 	if err != nil {
 		s.logger.Error("Failed to create order", zap.Error(err))
 		return nil, fmt.Errorf("failed to create order: %w", err)
 	}
+
+	_ = orderNumber
 
 	for _, item := range req.Items {
 		productResp, err := s.productClient.GetProduct(ctx, &productpb.GetProductRequest{ProductId: item.ProductId})
@@ -91,9 +95,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 		itemTotalUnits := productResp.Product.Price.Units * int64(item.Quantity)
 
 		err = s.queries.AddOrderItem(ctx, db.AddOrderItemParams{
-			OrderId:            orderID,
-			ProductId:          uuid.MustParse(item.ProductId),
-			VariantId:          item.VariantId,
+			OrderID:            orderID,
+			ProductID:          pgutil.ToPG(uuid.MustParse(item.ProductId)),
+			VariantID:          &item.VariantId,
 			ProductName:        productResp.Product.Name,
 			Quantity:           item.Quantity,
 			UnitPriceUnits:     productResp.Product.Price.Units,
@@ -107,7 +111,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 	}
 
 	return &orderpb.CreateOrderResponse{
-		OrderId:     orderID.String(),
+		OrderId:     pgutil.FromPG(orderID),
 		OrderNumber: orderNumber,
 		Status:      orderpb.OrderStatus_ORDER_STATUS_PENDING,
 	}, nil
@@ -117,7 +121,7 @@ func (s *OrderService) GetOrder(ctx context.Context, req *orderpb.GetOrderReques
 	s.logger.Info("Getting order", zap.String("order_id", req.OrderId))
 
 	cacheKey := cache.OrderCacheKey(req.OrderId)
-	var cached db.Order
+	var cached db.OrdersOrders
 
 	if err := s.cache.Get(ctx, cacheKey, &cached); err == nil {
 		s.logger.Debug("Order cache hit", zap.String("order_id", req.OrderId))
@@ -128,7 +132,7 @@ func (s *OrderService) GetOrder(ctx context.Context, req *orderpb.GetOrderReques
 
 	s.logger.Debug("Order cache miss", zap.String("order_id", req.OrderId))
 
-	orderID := uuid.MustParse(req.OrderId)
+	orderID := pgutil.ToPG(uuid.MustParse(req.OrderId))
 	order, err := s.queries.GetOrder(ctx, orderID)
 	if err != nil {
 		s.logger.Error("Failed to get order", zap.String("order_id", req.OrderId), zap.Error(err))
@@ -158,7 +162,7 @@ func (s *OrderService) ListOrders(ctx context.Context, req *orderpb.ListOrdersRe
 	s.logger.Info("Listing orders", zap.String("user_id", req.UserId))
 
 	orders, err := s.queries.ListUserOrders(ctx, db.ListUserOrdersParams{
-		UserId: uuid.MustParse(req.UserId),
+		UserID: pgutil.ToPG(uuid.MustParse(req.UserId)),
 		Limit:  req.Pagination.Limit,
 		Offset: (req.Pagination.Page - 1) * req.Pagination.Limit,
 	})
@@ -181,9 +185,9 @@ func (s *OrderService) ListOrders(ctx context.Context, req *orderpb.ListOrdersRe
 func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderpb.UpdateOrderStatusRequest) (*sharedpb.Empty, error) {
 	s.logger.Info("Updating order status", zap.String("order_id", req.OrderId), zap.String("status", req.Status.String()))
 
-	orderID := uuid.MustParse(req.OrderId)
+	orderID := pgutil.ToPG(uuid.MustParse(req.OrderId))
 	if err := s.queries.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
-		Id:     orderID,
+		ID:     orderID,
 		Status: int32(req.Status),
 	}); err != nil {
 		s.logger.Error("Failed to update order status", zap.String("order_id", req.OrderId), zap.Error(err))
@@ -210,7 +214,7 @@ func (s *OrderService) CancelOrder(ctx context.Context, req *orderpb.CancelOrder
 func (s *OrderService) ApplyPoints(ctx context.Context, req *orderpb.ApplyPointsRequest) (*orderpb.ApplyPointsResponse, error) {
 	s.logger.Info("Applying points to order", zap.String("order_id", req.OrderId), zap.Int64("points", req.Points))
 
-	orderID := uuid.MustParse(req.OrderId)
+	orderID := pgutil.ToPG(uuid.MustParse(req.OrderId))
 
 	order, err := s.queries.GetOrder(ctx, orderID)
 	if err != nil {
@@ -245,7 +249,7 @@ func (s *OrderService) ApplyPoints(ctx context.Context, req *orderpb.ApplyPoints
 func (s *OrderService) ReserveDeliverySlot(ctx context.Context, req *orderpb.ReserveDeliverySlotRequest) (*orderpb.ReserveDeliverySlotResponse, error) {
 	s.logger.Info("Reserving delivery slot", zap.String("order_id", req.OrderId), zap.String("slot", req.SlotId))
 
-	orderID := uuid.MustParse(req.OrderId)
+	orderID := pgutil.ToPG(uuid.MustParse(req.OrderId))
 
 	order, err := s.queries.GetOrder(ctx, orderID)
 	if err != nil {
@@ -273,31 +277,35 @@ func (s *OrderService) ReserveDeliverySlot(ctx context.Context, req *orderpb.Res
 	}, nil
 }
 
-func (s *OrderService) orderToProto(o db.Order) *orderpb.Order {
+func (s *OrderService) orderToProto(o db.OrdersOrders) *orderpb.Order {
 	status := orderpb.OrderStatus(o.Status)
 
 	return &orderpb.Order{
-		Id:              o.Id.String(),
+		Id:              pgutil.FromPG(o.ID),
 		OrderNumber:     o.OrderNumber,
-		UserId:          o.UserId.String(),
+		UserId:          pgutil.FromPG(o.UserID),
 		Status:          status,
 		SubtotalAmount:  s.moneyToProto(o.SubtotalUnits, o.SubtotalCurrency),
 		TaxAmount:       s.moneyToProto(o.TaxUnits, o.TaxCurrency),
 		DiscountAmount:  s.moneyToProto(o.DiscountUnits, o.DiscountCurrency),
 		TotalAmount:     s.moneyToProto(o.TotalUnits, o.TotalCurrency),
-		PointsApplied:   o.PointsApplied,
-		ShippingAddress: s.addressToProto(o.ShippingAddress),
+		PointsApplied:   int64(o.PointsApplied),
+		ShippingAddress: s.bytesToAddress(o.ShippingAddress),
 		PaymentMethod:   orderpb.PaymentMethod(o.PaymentMethod),
-		CreatedAt:       protoTime(o.CreatedAt),
-		UpdatedAt:       protoTime(o.UpdatedAt),
+		CreatedAt:       protoTimeFromTimestamptz(o.CreatedAt),
+		UpdatedAt:       protoTimeFromTimestamptz(o.UpdatedAt),
 	}
 }
 
-func (s *OrderService) orderItemToProto(i db.OrderItem) *orderpb.OrderItem {
+func (s *OrderService) orderItemToProto(i db.OrdersOrderItems) *orderpb.OrderItem {
+	variantID := ""
+	if i.VariantID != nil {
+		variantID = *i.VariantID
+	}
 	return &orderpb.OrderItem{
-		Id:          i.Id.String(),
-		ProductId:   i.ProductId.String(),
-		VariantId:   i.VariantId,
+		Id:          pgutil.FromPG(i.ID),
+		ProductId:   pgutil.FromPG(i.ProductID),
+		VariantId:   variantID,
 		ProductName: i.ProductName,
 		Quantity:    i.Quantity,
 		UnitPrice:   s.moneyToProto(i.UnitPriceUnits, i.UnitPriceCurrency),
@@ -324,12 +332,12 @@ func (s *OrderService) addressToProto(addr map[string]interface{}) *orderpb.Ship
 	}
 }
 
-func (s *OrderService) addressToMap(addr *orderpb.ShippingAddress) map[string]interface{} {
+func (s *OrderService) addressToBytes(addr *orderpb.ShippingAddress) []byte {
 	if addr == nil {
-		return make(map[string]interface{})
+		return []byte("{}")
 	}
 
-	return map[string]interface{}{
+	data, _ := json.Marshal(map[string]interface{}{
 		"name":          addr.Name,
 		"phone":         addr.Phone,
 		"postal_code":   addr.PostalCode,
@@ -337,7 +345,8 @@ func (s *OrderService) addressToMap(addr *orderpb.ShippingAddress) map[string]in
 		"city":          addr.City,
 		"address_line1": addr.AddressLine1,
 		"address_line2": addr.AddressLine2,
-	}
+	})
+	return data
 }
 
 func getStr(m map[string]interface{}, key string) string {
@@ -349,6 +358,20 @@ func getStr(m map[string]interface{}, key string) string {
 	return ""
 }
 
-func protoTime(t time.Time) *timestamppb.Timestamp {
-	return timestamppb.New(t)
+func protoTimeFromTimestamptz(ts pgtype.Timestamptz) *timestamppb.Timestamp {
+	if !ts.Valid {
+		return nil
+	}
+	return timestamppb.New(ts.Time)
+}
+
+func (s *OrderService) bytesToAddress(data []byte) *orderpb.ShippingAddress {
+	if len(data) == 0 {
+		return &orderpb.ShippingAddress{}
+	}
+	var addrMap map[string]interface{}
+	if err := json.Unmarshal(data, &addrMap); err != nil {
+		return &orderpb.ShippingAddress{}
+	}
+	return s.addressToProto(addrMap)
 }

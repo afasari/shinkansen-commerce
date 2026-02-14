@@ -26,7 +26,7 @@ var File_payment_payment_service_proto protoreflect.FileDescriptor
 
 const file_payment_payment_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1dpayment/payment_service.proto\x12\x12shinkansen.payment\x1a\x13shared/common.proto\x1a\x1epayment/payment_messages.proto\x1a\x1cgoogle/api/annotations.proto2\xaa\x04\n" +
+	"\x1dpayment/payment_service.proto\x12\x12shinkansen.payment\x1a\x1cgoogle/api/annotations.proto\x1a\x1epayment/payment_messages.proto\x1a\x13shared/common.proto2\xaa\x04\n" +
 	"\x0ePaymentService\x12}\n" +
 	"\rCreatePayment\x12(.shinkansen.payment.CreatePaymentRequest\x1a).shinkansen.payment.CreatePaymentResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/payments\x12~\n" +
 	"\n" +

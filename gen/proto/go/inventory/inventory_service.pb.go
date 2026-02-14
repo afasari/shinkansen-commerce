@@ -26,7 +26,7 @@ var File_inventory_inventory_service_proto protoreflect.FileDescriptor
 
 const file_inventory_inventory_service_proto_rawDesc = "" +
 	"\n" +
-	"!inventory/inventory_service.proto\x12\x14shinkansen.inventory\x1a\x13shared/common.proto\x1a\"inventory/inventory_messages.proto\x1a\x1cgoogle/api/annotations.proto2\xac\x05\n" +
+	"!inventory/inventory_service.proto\x12\x14shinkansen.inventory\x1a\x1cgoogle/api/annotations.proto\x1a\"inventory/inventory_messages.proto\x1a\x13shared/common.proto2\xac\x05\n" +
 	"\x10InventoryService\x12v\n" +
 	"\bGetStock\x12%.shinkansen.inventory.GetStockRequest\x1a&.shinkansen.inventory.GetStockResponse\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/inventory/stock\x12q\n" +
 	"\vUpdateStock\x12(.shinkansen.inventory.UpdateStockRequest\x1a\x18.shinkansen.common.Empty\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\x1a\x13/v1/inventory/stock\x12\x87\x01\n" +
