@@ -1,4 +1,8 @@
--- Create delivery schema
+-- Name: create_delivery_schema
+-- Description: Create delivery schema and all tables
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 CREATE SCHEMA IF NOT EXISTS delivery;
 
 -- Create delivery_zones table
@@ -48,10 +52,15 @@ CREATE TABLE IF NOT EXISTS delivery.delivery_reservations (
 );
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS idx_delivery_slots_zone_id ON delivery.delivery_slots(delivery_zone_id);
-CREATE INDEX IF NOT EXISTS idx_delivery_slots_date ON delivery.delivery_slots(date);
-CREATE INDEX IF NOT EXISTS idx_delivery_slots_available ON delivery.delivery_slots(available) WHERE available > 0;
-CREATE INDEX IF NOT EXISTS idx_shipments_order_id ON delivery.shipments(order_id);
+CREATE INDEX idx_delivery_slots_zone_id ON delivery.delivery_slots(delivery_zone_id);
+CREATE INDEX idx_delivery_slots_date ON delivery.delivery_slots(date);
+CREATE INDEX idx_delivery_slots_available ON delivery.delivery_slots(available) WHERE available > 0;
+CREATE INDEX idx_shipments_order_id ON delivery.shipments(order_id);
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- Comments
+COMMENT ON SCHEMA delivery IS 'Delivery service schema';
+
+COMMENT ON TABLE delivery.delivery_zones IS 'Delivery zone definitions';
+COMMENT ON TABLE delivery.delivery_slots IS 'Available delivery time slots';
+COMMENT ON TABLE delivery.shipments IS 'Shipment tracking information';
+COMMENT ON TABLE delivery.delivery_reservations IS 'Delivery slot reservations';

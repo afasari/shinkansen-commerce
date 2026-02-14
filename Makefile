@@ -21,6 +21,7 @@ PROTOC_DIR := $(HOME)/.local
 PROTOC_INCLUDE := $(PROTOC_DIR)/include
 PROTOC_BIN := $(PROTOC_DIR)/bin
 
+
 proto-gen: ## Generate gRPC code from protobufs
 	@echo "🔄 Generating Go protobuf code..."
 	@if ! command -v protoc >/dev/null 2>&1 && [ ! -f $(PROTOC_BIN)/protoc ]; then \
@@ -242,21 +243,22 @@ format-python: uv-install ## Format Python code
 	cd services/analytics-worker && uv run ruff format .
 
 # --- Database ---
+DATABASE_URL := localhost:5432
 db-migrate: ## Run database migrations
 	@echo "🗄️  Running database migrations..."
-	cd services/product-service && go run cmd/migrate/main.go
-	cd services/order-service && go run cmd/migrate/main.go
-	cd services/payment-service && go run cmd/migrate/main.go
-	cd services/user-service && go run cmd/migrate/main.go
-	cd services/delivery-service && go run cmd/migrate/main.go
+	cd services/product-service && migrate -path internal/migrations -database "${DATABASE_URL}" up
+	cd services/order-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
+	cd services/payment-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
+	cd services/user-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
+	cd services/delivery-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
 
 db-rollback: ## Rollback database migrations
 	@echo "⏪ Rolling back database migrations..."
-	cd services/product-service && go run cmd/migrate/main.go down
-	cd services/order-service && go run cmd/migrate/main.go down
-	cd services/payment-service && go run cmd/migrate/main.go down
-	cd services/user-service && go run cmd/migrate/main.go down
-	cd services/delivery-service && go run cmd/migrate/main.go down
+	cd services/product-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
+	cd services/order-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
+	cd services/payment-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
+	cd services/user-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
+	cd services/delivery-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
 
 # --- Docker ---
 docker-build: ## Build Docker images

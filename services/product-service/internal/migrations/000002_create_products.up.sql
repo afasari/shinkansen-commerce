@@ -33,8 +33,8 @@ CREATE INDEX idx_products_created ON catalog.products(created_at DESC);
 CREATE INDEX idx_products_active_category ON catalog.products(active, category_id) WHERE active = true;
 
 -- Foreign key constraint for category (will be created when categories table exists)
--- ALTER TABLE catalog.products ADD CONSTRAINT fk_products_category
---     FOREIGN KEY (category_id) REFERENCES catalog.categories(id) ON DELETE SET NULL;
+ALTER TABLE catalog.products ADD CONSTRAINT fk_products_category
+    FOREIGN KEY (category_id) REFERENCES catalog.categories(id) ON DELETE SET NULL;
 
 -- Comments for documentation
 COMMENT ON TABLE catalog.products IS 'Product catalog items';
