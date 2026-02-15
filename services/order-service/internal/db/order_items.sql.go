@@ -22,7 +22,7 @@ ON CONFLICT (order_id, product_id) DO NOTHING
 type AddOrderItemParams struct {
 	OrderID            pgtype.UUID `json:"order_id"`
 	ProductID          pgtype.UUID `json:"product_id"`
-	VariantID          *string     `json:"variant_id"`
+	VariantID          pgtype.UUID `json:"variant_id"`
 	ProductName        string      `json:"product_name"`
 	Quantity           int32       `json:"quantity"`
 	UnitPriceUnits     int64       `json:"unit_price_units"`

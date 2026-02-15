@@ -17,7 +17,7 @@ type OrdersOrderItems struct {
 	// Product ID
 	ProductID pgtype.UUID `json:"product_id"`
 	// Product variant ID
-	VariantID *string `json:"variant_id"`
+	VariantID pgtype.UUID `json:"variant_id"`
 	// Product name at time of order
 	ProductName string `json:"product_name"`
 	// Quantity ordered

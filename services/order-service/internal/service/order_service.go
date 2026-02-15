@@ -97,7 +97,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 		err = s.queries.AddOrderItem(ctx, db.AddOrderItemParams{
 			OrderID:            orderID,
 			ProductID:          pgutil.ToPG(uuid.MustParse(item.ProductId)),
-			VariantID:          &item.VariantId,
+			VariantID:          pgutil.ToPGFromString(item.VariantId),
 			ProductName:        productResp.Product.Name,
 			Quantity:           item.Quantity,
 			UnitPriceUnits:     productResp.Product.Price.Units,
@@ -298,10 +298,8 @@ func (s *OrderService) orderToProto(o db.OrdersOrders) *orderpb.Order {
 }
 
 func (s *OrderService) orderItemToProto(i db.OrdersOrderItems) *orderpb.OrderItem {
-	variantID := ""
-	if i.VariantID != nil {
-		variantID = *i.VariantID
-	}
+	variantID := i.VariantID.String()
+
 	return &orderpb.OrderItem{
 		Id:          pgutil.FromPG(i.ID),
 		ProductId:   pgutil.FromPG(i.ProductID),
