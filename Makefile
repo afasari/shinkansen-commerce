@@ -239,12 +239,12 @@ lint: ## Run linters
 
 lint-python: uv-install ## Lint Python code only
 	@echo "🔍 Linting Python code..."
-	cd services/analytics-worker && uv run ruff check .
-	cd services/analytics-worker && uv run ruff format --check .
+	cd services/analytics-worker && uv run --dev ruff check .
+	cd services/analytics-worker && uv run --dev ruff format --check .
 
 format-python: uv-install ## Format Python code
 	@echo "✨ Formatting Python code..."
-	cd services/analytics-worker && uv run ruff format .
+	cd services/analytics-worker && uv run --dev ruff format .
 
 # --- Database ---
 db-migrate: ## Run database migrations
