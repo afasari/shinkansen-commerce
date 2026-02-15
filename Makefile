@@ -103,6 +103,10 @@ init-deps: ## Download all dependencies
 	cd services/shared/go && go mod tidy
 	@echo "✅ All dependencies installed"
 
+uv-install: ## Install uv package manager
+	@echo "📦 Installing uv..."
+	@command -v uv --version || (curl -LsSf https://astral.sh/uv/install.sh | sh && echo "✅ uv installed")
+
 uv-sync: uv-install ## Sync Python dependencies using uv
 	@echo "📦 Syncing Python dependencies with uv..."
 	cd services/analytics-worker && uv sync

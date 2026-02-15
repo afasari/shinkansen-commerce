@@ -79,6 +79,11 @@ jobs:
       - name: Generate SQL code
         run: make sqlc-gen
 
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv --version
+
       - name: Lint Go code
         run: make lint
 
