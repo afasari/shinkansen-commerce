@@ -234,8 +234,8 @@ lint: ## Run linters
 	cd services/delivery-service && golangci-lint run
 	cd services/inventory-service && golangci-lint run
 	@echo "🔍 Linting Python code..."
-	cd services/analytics-worker && uv run ruff check .
-	cd services/analytics-worker && uv run ruff format --check .
+	cd services/analytics-worker && uv run --dev ruff check .
+	cd services/analytics-worker && uv run --dev ruff format --check .
 
 lint-python: uv-install ## Lint Python code only
 	@echo "🔍 Linting Python code..."
