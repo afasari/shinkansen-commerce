@@ -148,8 +148,7 @@ uv lock --upgrade         # Update all dependencies
 ## Resources
 
 - [UV Documentation](https://github.com/astral-sh/uv)
-- [Migration Guide](docs/PYTHON_UV_MIGRATION.md)
-- [Analytics Worker README](services/analytics-worker/README.md)
+- [Migration Guide](./PYTHON_UV_MIGRATION.md)
 
 ## Notes
 

@@ -848,7 +848,7 @@ export let options = {
 };
 
 export default function () {
-    let res = http.get('http://localhost:8080/v1/products');
+    let res = http.get('/v1/products');
     check(res, { 'status is 200': (r) => r.status === 200 });
     sleep(1);
 }
@@ -3040,7 +3040,7 @@ jobs:
       - name: Wait for services
         run: |
           timeout 60 bash -c 'until docker-compose exec postgres pg_isready; do sleep 2; done'
-          timeout 60 bash -c 'until curl -s http://localhost:8080/health; do sleep 2; done'
+          timeout 60 bash -c 'until curl -s /health; do sleep 2; done'
 
       - name: Run integration tests
         run: make test-integration
@@ -3455,7 +3455,7 @@ export let options = {
 
 export function setup() {
     // Register test user
-    let registerRes = http.post('http://localhost:8080/v1/users/register', JSON.stringify({
+    let registerRes = http.post('//v1/users/register', JSON.stringify({
         email: `test${__VU}@example.com`,
         password: 'TestPass123!',
         name: `Test User ${__VU}`,
@@ -3471,7 +3471,7 @@ export function setup() {
 }
 
 export function login(user) {
-    let loginRes = http.post('http://localhost:8080/v1/users/login', JSON.stringify({
+    let loginRes = http.post('//v1/users/login', JSON.stringify({
         email: user.email,
         password: 'TestPass123!',
     }), {
@@ -3486,7 +3486,7 @@ export default function (user) {
     let token = login(user);
 
     // Browse products
-    let productsRes = http.get('http://localhost:8080/v1/products', {
+    let productsRes = http.get('//v1/products', {
         headers: { 'Authorization': `Bearer ${token}` },
     });
     check(productsRes, {
@@ -3496,7 +3496,7 @@ export default function (user) {
 
     // Add to cart
     let products = JSON.parse(productsRes.body).products;
-    let cartRes = http.post('http://localhost:8080/v1/cart/items', JSON.stringify({
+    let cartRes = http.post('//v1/cart/items', JSON.stringify({
         product_id: products[0].id,
         quantity: 1,
     }), {
@@ -3510,7 +3510,7 @@ export default function (user) {
     }) || errorRate.add(1);
 
     // Get checkout summary
-    let checkoutRes = http.get('http://localhost:8080/v1/checkout/summary', {
+    let checkoutRes = http.get('//v1/checkout/summary', {
         headers: { 'Authorization': `Bearer ${token}` },
     });
     check(checkoutRes, {
@@ -3757,9 +3757,9 @@ terraform apply -var-file=environments/prod.tfvars
 
 ### Monitoring
 
-- Grafana: http://localhost:3000 (admin/admin)
-- Prometheus: http://localhost:9090
-- Jaeger: http://localhost:16686
+- Grafana: grafana:3000 (admin/admin)
+- Prometheus: prometheus:9090
+- Jaeger: jaeger:16686
 ```
 
 **4. Runbooks**

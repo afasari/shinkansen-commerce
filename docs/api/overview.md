@@ -1,11 +1,11 @@
 # API Overview
 
-The Shinkansen Commerce API follows RESTful principles with gRPC backend services. All endpoints are served through API Gateway at `http://localhost:8080`.
+The Shinkansen Commerce API follows RESTful principles with gRPC backend services. All endpoints are served through API Gateway at `/`.
 
 ## Base URL
 
 ```
-http://localhost:8080
+/
 ```
 
 ## Authentication
@@ -91,7 +91,7 @@ List endpoints support pagination via query parameters:
 
 ## Interactive Documentation
 
-Explore API interactively using Swagger UI: [http://localhost:8080/swagger/](http://localhost:8080/swagger/)
+Explore API interactively using Swagger UI: [swagger.yaml](api/swagger.yaml)
 
 ## Testing the API
 
@@ -99,10 +99,10 @@ Explore API interactively using Swagger UI: [http://localhost:8080/swagger/](htt
 
 ```bash
 # List products
-curl http://localhost:8080/v1/products
+curl /v1/products
 
 # Register user
-curl -X POST http://localhost:8080/v1/users/register \
+curl -X POST /v1/users/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -113,7 +113,7 @@ curl -X POST http://localhost:8080/v1/users/register \
 
 # Create order (with JWT)
 TOKEN="your-jwt-token"
-curl -X POST http://localhost:8080/v1/orders \
+curl -X POST /v1/orders \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -136,7 +136,7 @@ import (
 )
 
 func main() {
-    conn, err := grpc.Dial("localhost:9091", grpc.WithInsecure())
+    conn, err := grpc.Dial("product-service:9091", grpc.WithInsecure())
     if err != nil {
         log.Fatal(err)
     }
