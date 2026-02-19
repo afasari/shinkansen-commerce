@@ -1,0 +1,31 @@
+[package]
+name = "shinkansen-inventory-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.40", features = ["full"] }
+tonic = { version = "0.11", features = ["prost"] }
+prost-types = "0.12"
+
+sqlx = { version = "0.7", features = ["postgres", "macros", "uuid", "chrono", "json", "runtime-tokio"] }
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+
+shinkansen-proto = { path = "../../gen/proto/rust" }
+tokio-stream = { version = "0.1", features = ["net"] }
+
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+envy = "0.4"
+
+axum = { version = "0.8", features = ["tokio"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
