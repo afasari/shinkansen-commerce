@@ -5,8 +5,8 @@ export default defineConfig({
   description: 'High-performance e-commerce platform for Japanese market with microservices architecture',
   lang: 'en',
   base: '/shinkansen-commerce/',
-  ignoreDeadLinks: true,
-  
+  // ignoreDeadLinks: true,
+
   head: [
     ['meta', { name: 'theme-color', content: '#3c8772' }],
     ['meta', { name: 'description', content: 'High-performance e-commerce platform for Japanese market with microservices architecture' }],
