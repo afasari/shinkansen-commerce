@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps proto-gen proto-openapi-gen proto-lint proto-format sqlc-gen gen init-deps init-go-deps init-python-deps uv-install uv-sync uv-add uv-add-dev uv-run build-all build build-gateway build-product build-order build-user build-payment build-inventory build-delivery load-test benchmark-cache build-python test test-coverage test-integration test-python lint lint-python format-python db-migrate db-rollback docker-build docker-push k8s-apply k8s-delete k8s-logs clean clean-all
+.PHONY: help up down logs ps proto-gen proto-openapi-gen proto-lint proto-format sqlc-gen docs-gen gen init-deps init-go-deps init-python-deps uv-install uv-sync uv-add uv-add-dev uv-run build-all build build-gateway build-product build-order build-user build-payment build-inventory build-delivery load-test benchmark-cache build-python test test-coverage test-integration test-python lint lint-python format-python db-migrate db-rollback docker-build docker-push k8s-apply k8s-delete k8s-logs clean clean-all
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -20,7 +20,6 @@ ps: ## Show running containers
 PROTOC_DIR := $(HOME)/.local
 PROTOC_INCLUDE := $(PROTOC_DIR)/include
 PROTOC_BIN := $(PROTOC_DIR)/bin
-
 
 proto-gen: ## Generate gRPC code from protobufs
 	@echo "🔄 Generating Go protobuf code..."
@@ -44,9 +43,15 @@ proto-gen: ## Generate gRPC code from protobufs
 	protoc --proto_path=$(PROTOC_INCLUDE) --proto_path=proto --go_out=gen/proto/go --go_opt=paths=source_relative --go-grpc_out=gen/proto/go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/**/*.proto || true
 	@echo "✅ Go protobuf code generated"
 
-PROTOC_DIR := $(HOME)/.local
-PROTOC_INCLUDE := $(PROTOC_DIR)/include
-PROTOC_BIN := $(PROTOC_DIR)/bin
+proto-gen-rust: ## Generate Rust protobuf code
+	@echo "🦀 Generating Rust protobuf code..."
+	@mkdir -p gen/proto/rust
+	@if ! command -v buf >/dev/null 2>&1; then \
+		echo "Installing buf..." && \
+		go install github.com/bufbuild/buf/cmd/buf@latest; \
+	fi
+	cd gen/proto/rust && cargo build --release
+	@echo "✅ Rust protobuf code generated"
 
 proto-openapi-gen: ## Generate OpenAPI docs from protobufs
 	@echo "📝 Generating OpenAPI docs..."
@@ -89,18 +94,25 @@ sqlc-gen: ## Generate SQL code for Go services
 	# cd services/delivery-service && sqlc generate
 	# @echo "✅ Delivery Service SQL generated"
 
- gen: proto-gen proto-openapi-gen ## Generate all code (protobuf + sqlc + openapi)
+# Documentation
+docs-gen: ## Generate Rust documentation
+		@echo "📖️  Generating Rust documentation..."
+		@cd services/inventory-service && cargo doc --open --no-deps
+
+gen: proto-gen proto-openapi-gen ## Generate all code (protobuf + sqlc + openapi)
 
 # --- Dependencies ---
 init-deps: ## Download all dependencies
 	@echo "📦 Installing Go dependencies..."
-	cd services/gateway && go mod tidy
-	cd services/product-service && go mod tidy
-	cd services/order-service && go mod tidy
-	cd services/payment-service && go mod tidy
-	cd services/user-service && go mod tidy
-	cd services/delivery-service && go mod tidy
-	cd services/shared/go && go mod tidy
+	cd services/gateway && go mod tidy && go fmt ./...
+	cd services/product-service && go mod tidy && go fmt ./..
+	cd services/order-service && go mod tidy && go fmt ./..
+	cd services/payment-service && go mod tidy && go fmt ./..
+	cd services/user-service && go mod tidy && go fmt ./..
+	cd services/delivery-service && go mod tidy && go fmt ./..
+	cd services/shared/go && go mod tidy && go fmt ./..
+	@echo "📝 Formatting inventory-service..."
+	@cd services/inventory-service && cargo fmt --all
 	@echo "✅ All dependencies installed"
 
 uv-install: ## Install uv package manager
@@ -140,7 +152,6 @@ build-all: ## Build all Go services
 	@echo "🔨 Building Delivery Service..."
 	cd services/delivery-service && go build -o ../../bin/delivery-service ./cmd/delivery-service
 	@echo "🔨 Building Inventory Service..."
-	cd services/inventory-service && go build -o ../../bin/inventory-service ./cmd/inventory-service
 	@echo "✅ All services built to bin/"
 
 build: build-all ## Build all services (alias)
@@ -170,10 +181,11 @@ build-payment: ## Build Payment Service only
 	cd services/payment-service && go build -o ../../bin/payment-service ./cmd/payment-service
 	@echo "✅ Payment Service built to bin/payment-service"
 
-build-inventory: ## Build Inventory Service only
+build-inventory: ## Build inventory-service (Rust release)
+	@echo "🏗️  Building inventory-service (Rust release)..."
+	@cd services/inventory-service && cargo build --release
 	@mkdir -p bin
-	cd services/inventory-service && go build -o ../../bin/inventory-service ./cmd/inventory-service
-	@echo "✅ Inventory Service built to bin/inventory-service"
+	@cp services/inventory-service/target/release/shinkansen-inventory-service bin/inventory-service
 
 build-delivery: ## Build Delivery Service only
 	@mkdir -p bin
@@ -208,6 +220,8 @@ test: ## Run all tests
 	cd services/delivery-service && go test ./...
 	@echo "🧪 Running Shared tests..."
 	cd services/shared/go && go test ./...
+	@echo "🧪 Running inventory-service tests..."
+	@cd services/inventory-service &&	cargo test
 
 test-coverage: ## Run tests with coverage
 	@echo "📊 Running tests with coverage..."
@@ -232,7 +246,8 @@ lint: ## Run linters
 	cd services/payment-service && golangci-lint run
 	cd services/user-service && golangci-lint run
 	cd services/delivery-service && golangci-lint run
-	cd services/inventory-service && golangci-lint run
+	@echo "🔍 Linting Rust code..."
+	cd services/inventory-service && cargo clippy
 	@echo "🔍 Linting Python code..."
 	cd services/analytics-worker && uv run --dev ruff check .
 	cd services/analytics-worker && uv run --dev ruff format --check .
@@ -254,6 +269,7 @@ db-migrate: ## Run database migrations
 	cd services/payment-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
 	cd services/user-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
 	cd services/delivery-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
+	cd services/inventory-service && cargo run --release
 
 db-rollback: ## Rollback database migrations
 	@echo "⏪ Rolling back database migrations..."
