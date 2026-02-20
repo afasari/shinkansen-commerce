@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Generate VitePress API documentation from proto files
 # This script parses proto definitions and creates markdown files in docs/api/
 
@@ -34,25 +34,43 @@ extract_service_info() {
     echo "The ${service_name} service provides APIs for managing ${service_name}-related operations." >> "$doc_file"
     echo "" >> "$doc_file"
 
-    # Extract RPC methods
+    # Extract RPC methods using simplified approach
     echo "## RPC Methods" >> "$doc_file"
     echo "" >> "$doc_file"
-
-    # Extract all RPC lines and parse them
+    
+    # Read proto file and extract RPCs with simpler parsing
     grep -E '^\s*rpc\s+[A-Z]' "$proto_file_path" | while read -r line; do
-        # Extract method name (word after "rpc")
-        method=$(echo "$line" | grep -oP 'rpc\s+\K[A-Z][a-zA-Z]+')
+        # Extract method (first word after "rpc")
+        method=$(echo "$line" | sed -E 's/^\s*rpc\s+([A-Z][a-zA-Z]+).*/\1/')
         
-        # Extract request type (inside first set of parentheses)
-        request=$(echo "$line" | grep -oP '\(\K[A-Z][a-zA-Z]+Request(?=\))')
+        # Extract request type (text in first parentheses)
+        request=$(echo "$line" | sed -E 's/.*\(([A-Z][a-zA-Z]+Request).*/\1/')
         
-        # Extract response type (inside parentheses after "returns")
-        # Match patterns like "returns (GetStockResponse)" or "returns (shinkansen.common.Empty)"
-        response=$(echo "$line" | sed -n 's/.*returns[[:space:]]*([^)]*\).*/\1/p' | sed 's/^[[:space:]]*//')
+        # Extract response type - handle both formats:
+        # - returns (GetStockResponse)
+        # - returns (shinkansen.common.Empty)
         
-        # If response starts with "shinkansen" or doesn't end with Response, it's Empty
-        if [[ ! "$response" =~ Response$ ]]; then
-            response="shinkansen.common.Empty"
+        # Extract everything between parentheses after "returns"
+        response=$(echo "$line" | sed -E 's/.*returns\s+\(([^)]+)\).*/\1/')
+        
+        # If response contains a dot (nested type), use it as-is
+        # If response is a simple word and not "Empty", it's likely Empty type
+        if [ -n "$response" ]; then
+            if [[ ! "$response" =~ \. ]]; then
+                if [ "$response" = "Empty" ]; then
+                    response="shinkansen.common.Empty"
+                fi
+            fi
+        fi
+        
+        # Apply Empty fallback if response doesn't end with Response
+        if [ -n "$response" ] && [[ ! "$response" =~ Response$ ]]; then
+            if [[ "$response" =~ ^[A-Z] ]]; then
+                # If it's just a word without dots, assume it's shinkansen.common.Empty
+                case "$response" in
+                    Empty) response="shinkansen.common.Empty" ;;
+                esac
+            fi
         fi
         
         if [ -n "$method" ] && [ -n "$request" ]; then
@@ -117,7 +135,7 @@ extract_service_info() {
     echo "# Example gRPC call using grpcurl" >> "$doc_file"
     
     # Get first RPC method for example
-    first_method=$(grep -E '^\s*rpc\s+[A-Z]' "$proto_file_path" | head -1 | grep -oP 'rpc\s+\K[A-Z][a-zA-Z]+')
+    first_method=$(grep -E '^\s*rpc\s+[A-Z]' "$proto_file_path" | head -1 | sed -E 's/^\s*rpc\s+([A-Z][a-zA-Z]+).*/\1/')
     if [ -n "$first_method" ]; then
         echo "grpcurl -plaintext localhost:<port> shinkansen.${service_name}.${service_name^}Service/${first_method}" >> "$doc_file"
     else
