@@ -12,19 +12,19 @@ The payment service provides APIs for managing payment-related operations.
 
 **Request:** `CreatePaymentRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `CreatePaymentResponse`
 
 ### GetPayment
 
 **Request:** `GetPaymentRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetPaymentResponse`
 
 ### ProcessPayment
 
 **Request:** `ProcessPaymentRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `ProcessPaymentResponse`
 
 ### RefundPayment
 

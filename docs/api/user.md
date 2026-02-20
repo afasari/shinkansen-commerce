@@ -12,43 +12,43 @@ The user service provides APIs for managing user-related operations.
 
 **Request:** `RegisterUserRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `RegisterUserResponse`
 
 ### LoginUser
 
 **Request:** `LoginUserRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `LoginUserResponse`
 
 ### GetUser
 
 **Request:** `GetUserRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetUserResponse`
 
 ### UpdateUser
 
 **Request:** `UpdateUserRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `UpdateUserResponse`
 
 ### AddAddress
 
 **Request:** `AddAddressRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `AddAddressResponse`
 
 ### ListAddresses
 
 **Request:** `ListAddressesRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `ListAddressesResponse`
 
 ### UpdateAddress
 
 **Request:** `UpdateAddressRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `UpdateAddressResponse`
 
 ### DeleteAddress
 

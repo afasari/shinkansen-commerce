@@ -12,19 +12,19 @@ The delivery service provides APIs for managing delivery-related operations.
 
 **Request:** `GetDeliverySlotsRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetDeliverySlotsResponse`
 
 ### ReserveDeliverySlot
 
 **Request:** `ReserveDeliverySlotRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `ReserveDeliverySlotResponse`
 
 ### GetShipment
 
 **Request:** `GetShipmentRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetShipmentResponse`
 
 ### UpdateShipmentStatus
 

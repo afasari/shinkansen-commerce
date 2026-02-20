@@ -12,7 +12,7 @@ The inventory service provides APIs for managing inventory-related operations.
 
 **Request:** `GetStockRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetStockResponse`
 
 ### UpdateStock
 
@@ -24,7 +24,7 @@ The inventory service provides APIs for managing inventory-related operations.
 
 **Request:** `ReserveStockRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `ReserveStockResponse`
 
 ### ReleaseStock
 
@@ -36,7 +36,7 @@ The inventory service provides APIs for managing inventory-related operations.
 
 **Request:** `GetStockMovementsRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetStockMovementsResponse`
 
 
 ## HTTP Endpoints

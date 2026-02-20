@@ -12,19 +12,19 @@ The order service provides APIs for managing order-related operations.
 
 **Request:** `CreateOrderRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `CreateOrderResponse`
 
 ### GetOrder
 
 **Request:** `GetOrderRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetOrderResponse`
 
 ### ListOrders
 
 **Request:** `ListOrdersRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `ListOrdersResponse`
 
 ### UpdateOrderStatus
 
@@ -42,13 +42,13 @@ The order service provides APIs for managing order-related operations.
 
 **Request:** `ApplyPointsRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `ApplyPointsResponse`
 
 ### ReserveDeliverySlot
 
 **Request:** `ReserveDeliverySlotRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `ReserveDeliverySlotResponse`
 
 
 ## HTTP Endpoints

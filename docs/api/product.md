@@ -12,25 +12,25 @@ The product service provides APIs for managing product-related operations.
 
 **Request:** `ListProductsRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `ListProductsResponse`
 
 ### GetProduct
 
 **Request:** `GetProductRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetProductResponse`
 
 ### CreateProduct
 
 **Request:** `CreateProductRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `CreateProductResponse`
 
 ### UpdateProduct
 
 **Request:** `UpdateProductRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `UpdateProductResponse`
 
 ### DeleteProduct
 
@@ -42,13 +42,13 @@ The product service provides APIs for managing product-related operations.
 
 **Request:** `SearchProductsRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `SearchProductsResponse`
 
 ### GetProductVariants
 
 **Request:** `GetProductVariantsRequest`
 
-**Response:** `shinkansen.common.Empty`
+**Response:** `GetProductVariantsResponse`
 
 
 ## HTTP Endpoints
