@@ -1,0 +1,245 @@
+**Request:** `ListProductsRequest`
+
+**Response:** `ListProductsResponse`
+
+**gRPC Method:** `ListProducts`
+
+
+**Request:** `GetProductRequest`
+
+**Response:** `GetProductResponse`
+
+**gRPC Method:** `GetProduct`
+
+
+**Request:** `CreateProductRequest`
+
+**Response:** `CreateProductResponse`
+
+**gRPC Method:** `CreateProduct`
+
+
+**Request:** `UpdateProductRequest`
+
+**Response:** `UpdateProductResponse`
+
+**gRPC Method:** `UpdateProduct`
+
+
+**Request:** `DeleteProductRequest`
+
+**Response:** `shinkansen.common.Empty`
+
+**gRPC Method:** `DeleteProduct`
+
+
+**Request:** `SearchProductsRequest`
+
+**Response:** `SearchProductsResponse`
+
+**gRPC Method:** `SearchProducts`
+
+
+**Request:** `GetProductVariantsRequest`
+
+**Response:** `GetProductVariantsResponse`
+
+**gRPC Method:** `GetProductVariants`
+
+
+**Request:** `CreateOrderRequest`
+
+**Response:** `CreateOrderResponse`
+
+**gRPC Method:** `CreateOrder`
+
+
+**Request:** `GetOrderRequest`
+
+**Response:** `GetOrderResponse`
+
+**gRPC Method:** `GetOrder`
+
+
+**Request:** `ListOrdersRequest`
+
+**Response:** `ListOrdersResponse`
+
+**gRPC Method:** `ListOrders`
+
+
+**Request:** `UpdateOrderStatusRequest`
+
+**Response:** `shinkansen.common.Empty`
+
+**gRPC Method:** `UpdateOrderStatus`
+
+
+**Request:** `CancelOrderRequest`
+
+**Response:** `shinkansen.common.Empty`
+
+**gRPC Method:** `CancelOrder`
+
+
+**Request:** `ApplyPointsRequest`
+
+**Response:** `ApplyPointsResponse`
+
+**gRPC Method:** `ApplyPoints`
+
+
+**Request:** `ReserveDeliverySlotRequest`
+
+**Response:** `ReserveDeliverySlotResponse`
+
+**gRPC Method:** `ReserveDeliverySlot`
+
+
+**Request:** `RegisterUserRequest`
+
+**Response:** `RegisterUserResponse`
+
+**gRPC Method:** `RegisterUser`
+
+
+**Request:** `LoginUserRequest`
+
+**Response:** `LoginUserResponse`
+
+**gRPC Method:** `LoginUser`
+
+
+**Request:** `GetUserRequest`
+
+**Response:** `GetUserResponse`
+
+**gRPC Method:** `GetUser`
+
+
+**Request:** `UpdateUserRequest`
+
+**Response:** `UpdateUserResponse`
+
+**gRPC Method:** `UpdateUser`
+
+
+**Request:** `AddAddressRequest`
+
+**Response:** `AddAddressResponse`
+
+**gRPC Method:** `AddAddress`
+
+
+**Request:** `ListAddressesRequest`
+
+**Response:** `ListAddressesResponse`
+
+**gRPC Method:** `ListAddresses`
+
+
+**Request:** `UpdateAddressRequest`
+
+**Response:** `UpdateAddressResponse`
+
+**gRPC Method:** `UpdateAddress`
+
+
+**Request:** `DeleteAddressRequest`
+
+**Response:** `shinkansen.common.Empty`
+
+**gRPC Method:** `DeleteAddress`
+
+
+**Request:** `CreatePaymentRequest`
+
+**Response:** `CreatePaymentResponse`
+
+**gRPC Method:** `CreatePayment`
+
+
+**Request:** `GetPaymentRequest`
+
+**Response:** `GetPaymentResponse`
+
+**gRPC Method:** `GetPayment`
+
+
+**Request:** `ProcessPaymentRequest`
+
+**Response:** `ProcessPaymentResponse`
+
+**gRPC Method:** `ProcessPayment`
+
+
+**Request:** `RefundPaymentRequest`
+
+**Response:** `shinkansen.common.Empty`
+
+**gRPC Method:** `RefundPayment`
+
+
+**Request:** `GetStockRequest`
+
+**Response:** `GetStockResponse`
+
+**gRPC Method:** `GetStock`
+
+
+**Request:** `UpdateStockRequest`
+
+**Response:** `shinkansen.common.Empty`
+
+**gRPC Method:** `UpdateStock`
+
+
+**Request:** `ReserveStockRequest`
+
+**Response:** `ReserveStockResponse`
+
+**gRPC Method:** `ReserveStock`
+
+
+**Request:** `ReleaseStockRequest`
+
+**Response:** `shinkansen.common.Empty`
+
+**gRPC Method:** `ReleaseStock`
+
+
+**Request:** `GetStockMovementsRequest`
+
+**Response:** `GetStockMovementsResponse`
+
+**gRPC Method:** `GetStockMovements`
+
+
+**Request:** `GetDeliverySlotsRequest`
+
+**Response:** `GetDeliverySlotsResponse`
+
+**gRPC Method:** `GetDeliverySlots`
+
+
+**Request:** `ReserveDeliverySlotRequest`
+
+**Response:** `ReserveDeliverySlotResponse`
+
+**gRPC Method:** `ReserveDeliverySlot`
+
+
+**Request:** `GetShipmentRequest`
+
+**Response:** `GetShipmentResponse`
+
+**gRPC Method:** `GetShipment`
+
+
+**Request:** `UpdateShipmentStatusRequest`
+
+**Response:** `shinkansen.common.Empty`
+
+**gRPC Method:** `UpdateShipmentStatus`
+
+

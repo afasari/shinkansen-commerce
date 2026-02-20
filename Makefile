@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps proto-gen proto-openapi-gen proto-lint proto-format sqlc-gen docs-gen gen init-deps init-go-deps init-python-deps uv-install uv-sync uv-add uv-add-dev uv-run build-all build build-gateway build-product build-order build-user build-payment build-inventory build-delivery load-test benchmark-cache build-python test test-coverage test-integration test-python lint lint-python format-python db-migrate db-rollback docker-build docker-push k8s-apply k8s-delete k8s-logs clean clean-all
+.PHONY: help up down logs ps proto-gen proto-openapi-gen proto-lint proto-format sqlc-gen docs-gen docs-gen-api gen init-deps init-go-deps init-python-deps uv-install uv-sync uv-add uv-add-dev uv-run build-all build build-gateway build-product build-order build-user build-payment build-inventory build-delivery load-test benchmark-cache build-python test test-coverage test-integration test-python lint lint-python format-python db-migrate db-rollback docker-build docker-push k8s-apply k8s-delete k8s-logs clean clean-all proto-watch install-git-hooks
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -77,6 +77,18 @@ proto-lint: ## Lint protobuf files
 proto-format: ## Format protobuf files
 	buf format -w proto
 
+proto-watch: ## Watch proto files and auto-regenerate code (EXPERIMENTAL)
+	@echo "👀 Proto file watcher (experimental)..."
+	@bash scripts/automation/watch-proto.sh || (echo "⚠️  Watch mode not available - use manual workflow" && echo "   Edit proto files, then run: make gen")
+
+install-git-hooks: ## Install git hooks for auto code generation
+	@echo "🔧 Installing git hooks..."
+	@cp scripts/automation/pre-commit.sh .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "✅ Pre-commit hook installed"
+	@echo "   Code will be auto-generated when proto files are committed"
+	@echo "   (Hook installed as direct file, not symlink for reliability)"
+
 sqlc-gen: ## Generate SQL code for Go services
 	@echo "🔄 Generating SQL code for Product Service..."
 	cd services/product-service && sqlc generate
@@ -99,7 +111,11 @@ docs-gen: ## Generate Rust documentation
 		@echo "📖️  Generating Rust documentation..."
 		@cd services/inventory-service && cargo doc --open --no-deps
 
-gen: proto-gen proto-openapi-gen ## Generate all code (protobuf + sqlc + openapi)
+docs-gen-api: ## Generate API documentation from proto files
+		@echo "📝 Generating API documentation from proto files..."
+		@bash scripts/automation/generate-api-docs.sh
+
+gen: proto-gen proto-gen-rust proto-openapi-gen sqlc-gen docs-gen docs-gen-api ## Generate all code (protobuf + sqlc + openapi + docs)
 
 # --- Dependencies ---
 init-deps: ## Download all dependencies

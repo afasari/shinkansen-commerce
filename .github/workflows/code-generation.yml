@@ -1,0 +1,137 @@
+name: Code Generation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'proto/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'proto/**'
+
+jobs:
+  code-generation:
+    name: Generate Code from Proto
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install buf
+        run: go install github.com/bufbuild/buf/cmd/buf@latest
+
+      - name: Install protoc
+        run: |
+          mkdir -p ~/.local/bin ~/.local/include
+          curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-linux-x86_64.zip -o /tmp/protoc.zip
+          unzip -oq /tmp/protoc.zip -d ~/.local 'bin/*' 'include/*'
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install sqlc
+        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+      - name: Generate Go protobuf code
+        run: make proto-gen
+
+      - name: Generate Rust protobuf code
+        run: make proto-gen-rust
+
+      - name: Generate OpenAPI docs
+        run: make proto-openapi-gen
+
+      - name: Generate API documentation
+        run: make docs-gen-api
+
+      - name: Generate SQL code
+        run: make sqlc-gen
+
+      - name: Check for changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Code generation produced changes that need to be committed"
+            echo "::error::Please run 'make gen' and commit the generated code"
+            git status
+            exit 1
+          fi
+          echo "✅ Generated code is up to date"
+
+  proto-lint:
+    name: Lint Proto Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install buf
+        run: go install github.com/bufbuild/buf/cmd/buf@latest
+
+      - name: Lint proto files
+        run: make proto-lint
+
+      - name: Check formatting
+        run: |
+          if ! buf format -d proto | grep -q "^No changes"; then
+            echo "::error::Proto files are not formatted"
+            echo "::error::Please run 'make proto-format' to fix formatting"
+            exit 1
+          fi
+          echo "✅ Proto files are properly formatted"
+
+  check-generated:
+    name: Check Generated Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install buf
+        run: go install github.com/bufbuild/buf/cmd/buf@latest
+
+      - name: Install protoc
+        run: |
+          mkdir -p ~/.local/bin ~/.local/include
+          curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-linux-x86_64.zip -o /tmp/protoc.zip
+          unzip -oq /tmp/protoc.zip -d ~/.local 'bin/*' 'include/*'
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install sqlc
+        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+      - name: Generate all code
+        run: make gen
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Generated code is out of sync with proto files"
+            echo "::error::Please run 'make gen' locally and commit the changes"
+            git diff --stat
+            exit 1
+          fi
+          echo "✅ All generated code is up to date"
