@@ -7,6 +7,7 @@ import (
 	"time"
 
 	deliverypb "github.com/afasari/shinkansen-commerce/gen/proto/go/delivery"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -19,6 +20,11 @@ func NewDeliveryHandler(conn *grpc.ClientConn) *DeliveryHandler {
 	return &DeliveryHandler{
 		client: deliverypb.NewDeliveryServiceClient(conn),
 	}
+}
+
+func validateUUID(id, fieldName string) bool {
+	_, err := uuid.Parse(id)
+	return err == nil
 }
 
 func (h *DeliveryHandler) RegisterHandlers(mux *http.ServeMux) {
@@ -85,6 +91,10 @@ func (h *DeliveryHandler) getDeliverySlots(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "delivery_zone_id is required", http.StatusBadRequest)
 		return
 	}
+	if !validateUUID(deliveryZoneID, "delivery_zone_id") {
+		http.Error(w, "Invalid UUID format for delivery_zone_id", http.StatusBadRequest)
+		return
+	}
 
 	var date time.Time
 	if dateStr := r.URL.Query().Get("date"); dateStr != "" {
@@ -133,6 +143,10 @@ func (h *DeliveryHandler) reserveDeliverySlotByID(w http.ResponseWriter, r *http
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if !validateUUID(slotID, "slot_id") {
+		http.Error(w, "Invalid UUID format for slot_id", http.StatusBadRequest)
+		return
+	}
 
 	var req deliverypb.ReserveDeliverySlotRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -151,6 +165,10 @@ func (h *DeliveryHandler) reserveDeliverySlotByID(w http.ResponseWriter, r *http
 }
 
 func (h *DeliveryHandler) getShipment(w http.ResponseWriter, r *http.Request, ctx context.Context, shipmentID string) {
+	if !validateUUID(shipmentID, "shipment_id") {
+		http.Error(w, "Invalid UUID format for shipment_id", http.StatusBadRequest)
+		return
+	}
 	req := &deliverypb.GetShipmentRequest{ShipmentId: shipmentID}
 	resp, err := h.client.GetShipment(ctx, req)
 	if err != nil {
@@ -164,6 +182,10 @@ func (h *DeliveryHandler) getShipment(w http.ResponseWriter, r *http.Request, ct
 func (h *DeliveryHandler) updateShipmentStatus(w http.ResponseWriter, r *http.Request, ctx context.Context, shipmentID string) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !validateUUID(shipmentID, "shipment_id") {
+		http.Error(w, "Invalid UUID format for shipment_id", http.StatusBadRequest)
 		return
 	}
 

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	deliverypb "github.com/afasari/shinkansen-commerce/gen/proto/go/delivery"
@@ -31,7 +33,10 @@ func (s *DeliveryService) GetDeliverySlots(ctx context.Context, req *deliverypb.
 	s.logger.Info("Getting delivery slots",
 		zap.String("delivery_zone_id", req.DeliveryZoneId))
 
-	deliveryZoneID := uuid.MustParse(req.DeliveryZoneId)
+	deliveryZoneID, err := uuid.Parse(req.DeliveryZoneId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid delivery_zone_id: must be a valid UUID")
+	}
 	date := req.Date.AsTime()
 	if date.IsZero() {
 		date = time.Now()
@@ -57,8 +62,14 @@ func (s *DeliveryService) ReserveDeliverySlot(ctx context.Context, req *delivery
 		zap.String("slot_id", req.SlotId),
 		zap.String("order_id", req.OrderId))
 
-	slotID := uuid.MustParse(req.SlotId)
-	orderID := uuid.MustParse(req.OrderId)
+	slotID, err := uuid.Parse(req.SlotId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid slot_id: must be a valid UUID")
+	}
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid order_id: must be a valid UUID")
+	}
 
 	reservationID, err := s.queries.ReserveDeliverySlot(ctx, slotID, orderID)
 	if err != nil {
@@ -74,8 +85,12 @@ func (s *DeliveryService) ReserveDeliverySlot(ctx context.Context, req *delivery
 func (s *DeliveryService) GetShipment(ctx context.Context, req *deliverypb.GetShipmentRequest) (*deliverypb.GetShipmentResponse, error) {
 	s.logger.Info("Getting shipment", zap.String("shipment_id", req.ShipmentId))
 
-	shipmentID := uuid.MustParse(req.ShipmentId)
-	shipment, err := s.queries.GetShipment(ctx, shipmentID)
+	shipmentID, err := uuid.Parse(req.ShipmentId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid shipment_id: must be a valid UUID")
+	}
+	var shipment db.Shipment
+	shipment, err = s.queries.GetShipment(ctx, shipmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get shipment: %w", err)
 	}
@@ -90,8 +105,11 @@ func (s *DeliveryService) UpdateShipmentStatus(ctx context.Context, req *deliver
 		zap.String("shipment_id", req.ShipmentId),
 		zap.String("status", req.Status.String()))
 
-	shipmentID := uuid.MustParse(req.ShipmentId)
-	err := s.queries.UpdateShipmentStatus(ctx, shipmentID, req.Status.String())
+	shipmentID, err := uuid.Parse(req.ShipmentId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid shipment_id: must be a valid UUID")
+	}
+	err = s.queries.UpdateShipmentStatus(ctx, shipmentID, req.Status.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to update shipment status: %w", err)
 	}
