@@ -23,12 +23,24 @@ type Querier interface {
 	// Get all variants for a specific product
 	// :product_id
 	GetProductVariants(ctx context.Context, productID pgtype.UUID) ([]CatalogProductVariants, error)
+	// Retrieve most popular search queries from the last N days
+	// Returns top 100 queries with search count and unique user count
+	// :days_ago
+	GetTopSearchQueries(ctx context.Context, daysAgo *int32) ([]interface{}, error)
 	// List products with optional filtering
 	// :category_id, :active_only, :limit, :offset
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error)
 	// Full-text search for products using PostgreSQL GIN indexes
 	// :query, :category_id, :min_price, :max_price, :in_stock_only, :limit, :offset
 	SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error)
+	// Fuzzy search for products combining exact full-text match with trigram similarity
+	// Supports typo correction and fuzzy matching
+	// :search_query, :category_filter, :min_price, :max_price, :stock_only, :fuzzy_threshold
+	SearchProductsFuzzy(ctx context.Context, arg SearchProductsFuzzyParams) ([]interface{}, error)
+	// Track search query to analytics table for business intelligence
+	// Records search query, results count, and optional user_id
+	// :search_query, :results_count, :user_id
+	TrackSearch(ctx context.Context, arg TrackSearchParams) error
 	// Update product fields (only update provided fields)
 	// :id, :name, :description, :category_id, :price_units, :active
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (UpdateProductRow, error)
