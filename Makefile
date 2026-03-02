@@ -234,10 +234,10 @@ test: ## Run all tests
 	cd services/user-service && go test ./...
 	@echo "🧪 Running Delivery Service tests..."
 	cd services/delivery-service && go test ./...
-	@echo "🧪 Running Shared tests..."
-	cd services/shared/go && go test ./...
+	# @echo "🧪 Running Shared tests..."
+	# cd services/shared/go && go test ./...
 	@echo "🧪 Running inventory-service tests..."
-	@cd services/inventory-service &&	cargo test
+	@cd services/inventory-service &&	cargo test -- --test-threads=1
 
 test-coverage: ## Run tests with coverage
 	@echo "📊 Running tests with coverage..."

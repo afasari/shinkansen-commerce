@@ -1123,6 +1123,50 @@ func (x *DeleteAddressRequest) GetAddressId() string {
 	return ""
 }
 
+type OptionalString struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OptionalString) Reset() {
+	*x = OptionalString{}
+	mi := &file_user_user_messages_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OptionalString) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OptionalString) ProtoMessage() {}
+
+func (x *OptionalString) ProtoReflect() protoreflect.Message {
+	mi := &file_user_user_messages_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OptionalString.ProtoReflect.Descriptor instead.
+func (*OptionalString) Descriptor() ([]byte, []int) {
+	return file_user_user_messages_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *OptionalString) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 var File_user_user_messages_proto protoreflect.FileDescriptor
 
 const file_user_user_messages_proto_rawDesc = "" +
@@ -1225,7 +1269,9 @@ const file_user_user_messages_proto_rawDesc = "" +
 	"\x14DeleteAddressRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
-	"address_id\x18\x02 \x01(\tR\taddressIdB:Z8github.com/afasari/shinkansen-commerce/gen/proto/go/userb\x06proto3"
+	"address_id\x18\x02 \x01(\tR\taddressId\"&\n" +
+	"\x0eOptionalString\x12\x14\n" +
+	"\x05value\x18\x01 \x01(\tR\x05valueB:Z8github.com/afasari/shinkansen-commerce/gen/proto/go/userb\x06proto3"
 
 var (
 	file_user_user_messages_proto_rawDescOnce sync.Once
@@ -1239,7 +1285,7 @@ func file_user_user_messages_proto_rawDescGZIP() []byte {
 	return file_user_user_messages_proto_rawDescData
 }
 
-var file_user_user_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_user_user_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_user_user_messages_proto_goTypes = []any{
 	(*User)(nil),                   // 0: shinkansen.user.User
 	(*Address)(nil),                // 1: shinkansen.user.Address
@@ -1258,27 +1304,28 @@ var file_user_user_messages_proto_goTypes = []any{
 	(*UpdateAddressRequest)(nil),   // 14: shinkansen.user.UpdateAddressRequest
 	(*UpdateAddressResponse)(nil),  // 15: shinkansen.user.UpdateAddressResponse
 	(*DeleteAddressRequest)(nil),   // 16: shinkansen.user.DeleteAddressRequest
-	(*timestamppb.Timestamp)(nil),  // 17: google.protobuf.Timestamp
-	(*wrapperspb.StringValue)(nil), // 18: google.protobuf.StringValue
-	(*wrapperspb.BoolValue)(nil),   // 19: google.protobuf.BoolValue
+	(*OptionalString)(nil),         // 17: shinkansen.user.OptionalString
+	(*timestamppb.Timestamp)(nil),  // 18: google.protobuf.Timestamp
+	(*wrapperspb.StringValue)(nil), // 19: google.protobuf.StringValue
+	(*wrapperspb.BoolValue)(nil),   // 20: google.protobuf.BoolValue
 }
 var file_user_user_messages_proto_depIdxs = []int32{
-	17, // 0: shinkansen.user.User.created_at:type_name -> google.protobuf.Timestamp
-	17, // 1: shinkansen.user.User.updated_at:type_name -> google.protobuf.Timestamp
-	17, // 2: shinkansen.user.Address.created_at:type_name -> google.protobuf.Timestamp
+	18, // 0: shinkansen.user.User.created_at:type_name -> google.protobuf.Timestamp
+	18, // 1: shinkansen.user.User.updated_at:type_name -> google.protobuf.Timestamp
+	18, // 2: shinkansen.user.Address.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 3: shinkansen.user.GetUserResponse.user:type_name -> shinkansen.user.User
-	18, // 4: shinkansen.user.UpdateUserRequest.name:type_name -> google.protobuf.StringValue
-	18, // 5: shinkansen.user.UpdateUserRequest.phone:type_name -> google.protobuf.StringValue
+	19, // 4: shinkansen.user.UpdateUserRequest.name:type_name -> google.protobuf.StringValue
+	19, // 5: shinkansen.user.UpdateUserRequest.phone:type_name -> google.protobuf.StringValue
 	0,  // 6: shinkansen.user.UpdateUserResponse.user:type_name -> shinkansen.user.User
 	1,  // 7: shinkansen.user.ListAddressesResponse.addresses:type_name -> shinkansen.user.Address
-	18, // 8: shinkansen.user.UpdateAddressRequest.name:type_name -> google.protobuf.StringValue
-	18, // 9: shinkansen.user.UpdateAddressRequest.phone:type_name -> google.protobuf.StringValue
-	18, // 10: shinkansen.user.UpdateAddressRequest.postal_code:type_name -> google.protobuf.StringValue
-	18, // 11: shinkansen.user.UpdateAddressRequest.prefecture:type_name -> google.protobuf.StringValue
-	18, // 12: shinkansen.user.UpdateAddressRequest.city:type_name -> google.protobuf.StringValue
-	18, // 13: shinkansen.user.UpdateAddressRequest.address_line1:type_name -> google.protobuf.StringValue
-	18, // 14: shinkansen.user.UpdateAddressRequest.address_line2:type_name -> google.protobuf.StringValue
-	19, // 15: shinkansen.user.UpdateAddressRequest.is_default:type_name -> google.protobuf.BoolValue
+	19, // 8: shinkansen.user.UpdateAddressRequest.name:type_name -> google.protobuf.StringValue
+	19, // 9: shinkansen.user.UpdateAddressRequest.phone:type_name -> google.protobuf.StringValue
+	19, // 10: shinkansen.user.UpdateAddressRequest.postal_code:type_name -> google.protobuf.StringValue
+	19, // 11: shinkansen.user.UpdateAddressRequest.prefecture:type_name -> google.protobuf.StringValue
+	19, // 12: shinkansen.user.UpdateAddressRequest.city:type_name -> google.protobuf.StringValue
+	19, // 13: shinkansen.user.UpdateAddressRequest.address_line1:type_name -> google.protobuf.StringValue
+	19, // 14: shinkansen.user.UpdateAddressRequest.address_line2:type_name -> google.protobuf.StringValue
+	20, // 15: shinkansen.user.UpdateAddressRequest.is_default:type_name -> google.protobuf.BoolValue
 	1,  // 16: shinkansen.user.UpdateAddressResponse.address:type_name -> shinkansen.user.Address
 	17, // [17:17] is the sub-list for method output_type
 	17, // [17:17] is the sub-list for method input_type
@@ -1298,7 +1345,7 @@ func file_user_user_messages_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_user_messages_proto_rawDesc), len(file_user_user_messages_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

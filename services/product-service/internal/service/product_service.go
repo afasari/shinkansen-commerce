@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
@@ -11,8 +12,11 @@ import (
 	"github.com/afasari/shinkansen-commerce/services/product-service/internal/db"
 	"github.com/afasari/shinkansen-commerce/services/product-service/internal/pkg/pgutil"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ProductService struct {
@@ -30,12 +34,21 @@ func NewProductService(queries db.Querier, cacheClient cache.Cache, logger *zap.
 	}
 }
 
+func isDuplicateKeyError(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.SQLState() == "23505"
+}
+
 func (s *ProductService) CreateProduct(ctx context.Context, req *productpb.CreateProductRequest) (*productpb.CreateProductResponse, error) {
 	s.logger.Info("Creating product", zap.String("name", req.Name))
 
 	var categoryID pgtype.UUID
 	if req.CategoryId != "" {
-		categoryID = pgutil.ToPG(uuid.MustParse(req.CategoryId))
+		parsedUUID, err := uuid.Parse(req.CategoryId)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category_id: %w", err)
+		}
+		categoryID = pgutil.ToPG(parsedUUID)
 	}
 
 	name := req.Name
@@ -43,9 +56,13 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *productpb.Creat
 	priceUnits := req.Price.Units
 	priceCurrency := req.Price.Currency
 	sku := req.Sku
-	var stockQty *int32
-	if req.StockQuantity > 0 {
-		stockQty = &req.StockQuantity
+	if sku == "" {
+		// Generate a unique SKU based on the product name and UUID
+		sku = "SKU-" + uuid.New().String()[:8]
+	}
+	stockQty := req.StockQuantity
+	if stockQty == 0 {
+		stockQty = 100 // Default to 100 items in stock for new products
 	}
 
 	productID, err := s.queries.CreateProduct(ctx, db.CreateProductParams{
@@ -55,11 +72,14 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *productpb.Creat
 		PriceUnits:    &priceUnits,
 		PriceCurrency: &priceCurrency,
 		Sku:           &sku,
-		StockQuantity: stockQty,
+		StockQuantity: &stockQty,
 	})
 	if err != nil {
 		s.logger.Error("Failed to create product", zap.Error(err))
-		return nil, fmt.Errorf("failed to create product: %w", err)
+		if isDuplicateKeyError(err) {
+			return nil, status.Error(codes.AlreadyExists, "product with this SKU already exists")
+		}
+		return nil, status.Error(codes.Internal, "failed to create product")
 	}
 
 	return &productpb.CreateProductResponse{
@@ -80,11 +100,15 @@ func (s *ProductService) GetProduct(ctx context.Context, req *productpb.GetProdu
 
 	s.logger.Debug("Product cache miss", zap.String("product_id", req.ProductId))
 
-	productID := pgutil.ToPG(uuid.MustParse(req.ProductId))
-	product, err := s.queries.GetProduct(ctx, productID)
+	productID, err := uuid.Parse(req.ProductId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid product_id")
+	}
+
+	product, err := s.queries.GetProduct(ctx, pgutil.ToPG(productID))
 	if err != nil {
 		s.logger.Error("Failed to get product", zap.String("product_id", req.ProductId), zap.Error(err))
-		return nil, fmt.Errorf("failed to get product: %w", err)
+		return nil, status.Error(codes.NotFound, "product not found")
 	}
 
 	if err := s.cache.Set(ctx, cacheKey, product, cache.DefaultTTL); err != nil {
@@ -104,15 +128,23 @@ func (s *ProductService) ListProducts(ctx context.Context, req *productpb.ListPr
 
 	var categoryID pgtype.UUID
 	if req.CategoryId != "" {
-		categoryID = pgutil.ToPG(uuid.MustParse(req.CategoryId))
+		parsedUUID, err := uuid.Parse(req.CategoryId)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category_id: %w", err)
+		}
+		categoryID = pgutil.ToPG(parsedUUID)
 	}
 
-	activeOnly := req.ActiveOnly
+	var activeOnly *bool
+	if req.ActiveOnly {
+		val := true
+		activeOnly = &val
+	}
 	offset := (req.Pagination.Page - 1) * req.Pagination.Limit
 	limit := req.Pagination.Limit
 	products, err := s.queries.ListProducts(ctx, db.ListProductsParams{
 		CategoryID: categoryID,
-		ActiveOnly: &activeOnly,
+		ActiveOnly: activeOnly,
 		Offset:     &offset,
 		Limit:      &limit,
 	})
@@ -135,11 +167,19 @@ func (s *ProductService) ListProducts(ctx context.Context, req *productpb.ListPr
 func (s *ProductService) UpdateProduct(ctx context.Context, req *productpb.UpdateProductRequest) (*productpb.UpdateProductResponse, error) {
 	s.logger.Info("Updating product", zap.String("product_id", req.ProductId))
 
-	id := pgutil.ToPG(uuid.MustParse(req.ProductId))
+	id, err := uuid.Parse(req.ProductId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product_id: %w", err)
+	}
+	idpg := pgutil.ToPG(id)
 
 	var categoryID pgtype.UUID
 	if req.CategoryId != nil {
-		categoryID = pgutil.ToPG(uuid.MustParse(req.CategoryId.Value))
+		parsedUUID, err := uuid.Parse(req.CategoryId.Value)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category_id: %w", err)
+		}
+		categoryID = pgutil.ToPG(parsedUUID)
 	}
 
 	var name *string
@@ -163,7 +203,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, req *productpb.Updat
 	}
 
 	updatedProduct, err := s.queries.UpdateProduct(ctx, db.UpdateProductParams{
-		ID:          id,
+		ID:          idpg,
 		Name:        name,
 		Description: description,
 		CategoryID:  categoryID,
@@ -188,8 +228,11 @@ func (s *ProductService) UpdateProduct(ctx context.Context, req *productpb.Updat
 func (s *ProductService) DeleteProduct(ctx context.Context, req *productpb.DeleteProductRequest) (*sharedpb.Empty, error) {
 	s.logger.Info("Deleting product", zap.String("product_id", req.ProductId))
 
-	productID := pgutil.ToPG(uuid.MustParse(req.ProductId))
-	if err := s.queries.DeleteProduct(ctx, productID); err != nil {
+	productID, err := uuid.Parse(req.ProductId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product_id: %w", err)
+	}
+	if err := s.queries.DeleteProduct(ctx, pgutil.ToPG(productID)); err != nil {
 		s.logger.Error("Failed to delete product", zap.String("product_id", req.ProductId), zap.Error(err))
 		return nil, fmt.Errorf("failed to delete product: %w", err)
 	}
@@ -207,7 +250,11 @@ func (s *ProductService) SearchProducts(ctx context.Context, req *productpb.Sear
 
 	var categoryID pgtype.UUID
 	if req.CategoryId != "" {
-		categoryID = pgutil.ToPG(uuid.MustParse(req.CategoryId))
+		parsedUUID, err := uuid.Parse(req.CategoryId)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category_id: %w", err)
+		}
+		categoryID = pgutil.ToPG(parsedUUID)
 	}
 
 	var minPrice *int64
@@ -256,8 +303,11 @@ func (s *ProductService) SearchProducts(ctx context.Context, req *productpb.Sear
 func (s *ProductService) GetProductVariants(ctx context.Context, req *productpb.GetProductVariantsRequest) (*productpb.GetProductVariantsResponse, error) {
 	s.logger.Info("Getting product variants", zap.String("product_id", req.ProductId))
 
-	productID := pgutil.ToPG(uuid.MustParse(req.ProductId))
-	variants, err := s.queries.GetProductVariants(ctx, productID)
+	productID, err := uuid.Parse(req.ProductId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product_id: %w", err)
+	}
+	variants, err := s.queries.GetProductVariants(ctx, pgutil.ToPG(productID))
 	if err != nil {
 		s.logger.Error("Failed to get product variants", zap.String("product_id", req.ProductId), zap.Error(err))
 		return nil, fmt.Errorf("failed to get product variants: %w", err)

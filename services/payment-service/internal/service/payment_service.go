@@ -3,10 +3,14 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	paymentpb "github.com/afasari/shinkansen-commerce/gen/proto/go/payment"
@@ -31,11 +35,21 @@ func NewPaymentService(queries db.Querier, cacheClient cache.Cache, logger *zap.
 	}
 }
 
+func isDuplicateKeyError(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.SQLState() == "23505"
+}
+
 func (s *PaymentService) CreatePayment(ctx context.Context, req *paymentpb.CreatePaymentRequest) (*paymentpb.CreatePaymentResponse, error) {
 	s.logger.Info("Creating payment", zap.String("order_id", req.OrderId))
 
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+
 	paymentID, err := s.queries.CreatePayment(ctx, db.CreatePaymentParams{
-		OrderID:     uuid.MustParse(req.OrderId),
+		OrderID:     orderID,
 		Method:      req.Method.String(),
 		AmountMinor: int(req.Amount.Units),
 		Currency:    req.Amount.Currency,
@@ -43,7 +57,10 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *paymentpb.Creat
 
 	if err != nil {
 		s.logger.Error("Failed to create payment", zap.Error(err))
-		return nil, fmt.Errorf("failed to create payment: %w", err)
+		if isDuplicateKeyError(err) {
+			return nil, status.Error(codes.AlreadyExists, "payment already exists for this order")
+		}
+		return nil, status.Error(codes.Internal, "failed to create payment")
 	}
 
 	return &paymentpb.CreatePaymentResponse{
@@ -55,6 +72,11 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *paymentpb.Creat
 func (s *PaymentService) GetPayment(ctx context.Context, req *paymentpb.GetPaymentRequest) (*paymentpb.GetPaymentResponse, error) {
 	s.logger.Info("Getting payment", zap.String("payment_id", req.PaymentId))
 
+	paymentID, err := uuid.Parse(req.PaymentId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid payment_id")
+	}
+
 	cacheKey := cache.PaymentCacheKey(req.PaymentId)
 	var cached db.Payment
 	if err := s.cache.Get(ctx, cacheKey, &cached); err == nil {
@@ -64,9 +86,10 @@ func (s *PaymentService) GetPayment(ctx context.Context, req *paymentpb.GetPayme
 		}, nil
 	}
 
-	payment, err := s.queries.GetPayment(ctx, uuid.MustParse(req.PaymentId))
+	payment, err := s.queries.GetPayment(ctx, paymentID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get payment: %w", err)
+		s.logger.Error("Failed to get payment", zap.Error(err))
+		return nil, status.Error(codes.NotFound, "payment not found")
 	}
 
 	if err := s.cache.Set(ctx, cacheKey, payment, cache.DefaultTTL); err != nil {
@@ -81,19 +104,24 @@ func (s *PaymentService) GetPayment(ctx context.Context, req *paymentpb.GetPayme
 func (s *PaymentService) ProcessPayment(ctx context.Context, req *paymentpb.ProcessPaymentRequest) (*paymentpb.ProcessPaymentResponse, error) {
 	s.logger.Info("Processing payment", zap.String("payment_id", req.PaymentId))
 
-	payment, err := s.queries.GetPayment(ctx, uuid.MustParse(req.PaymentId))
+	paymentID, err := uuid.Parse(req.PaymentId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get payment: %w", err)
+		return nil, status.Error(codes.InvalidArgument, "invalid payment_id")
+	}
+
+	payment, err := s.queries.GetPayment(ctx, paymentID)
+	if err != nil {
+		s.logger.Error("Failed to get payment", zap.Error(err))
+		return nil, status.Error(codes.NotFound, "payment not found")
 	}
 
 	if payment.Status != "PAYMENT_STATUS_PENDING" {
-		return nil, fmt.Errorf("payment is not in pending status: %s", payment.Status)
+		return nil, status.Error(codes.FailedPrecondition, "not in pending status")
 	}
 
-	status, transactionID, err := s.processWithGateway(ctx, payment, req.PaymentData)
+	paymentStatus, transactionID, err := s.processWithGateway(ctx, payment, req.PaymentData)
 	if err != nil {
-		s.logger.Error("Payment processing failed", zap.Error(err))
-		return nil, fmt.Errorf("payment processing failed: %w", err)
+		return nil, err
 	}
 
 	paymentDataBytes, _ := json.Marshal(req.PaymentData)
@@ -106,17 +134,18 @@ func (s *PaymentService) ProcessPayment(ctx context.Context, req *paymentpb.Proc
 
 	if err := s.queries.UpdatePaymentStatus(ctx, db.UpdatePaymentStatusParams{
 		ID:            payment.ID,
-		Status:        status.String(),
+		Status:        paymentStatus.String(),
 		TransactionID: &transactionID,
 	}); err != nil {
-		return nil, fmt.Errorf("failed to update payment status: %w", err)
+		s.logger.Error("Failed to update payment status", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to update payment status")
 	}
 
 	_ = s.cache.Delete(ctx, cache.PaymentCacheKey(req.PaymentId))
 	_ = s.cache.Delete(ctx, cache.PaymentsByOrderCacheKey(payment.OrderID.String()))
 
 	return &paymentpb.ProcessPaymentResponse{
-		Status:        status,
+		Status:        paymentStatus,
 		TransactionId: transactionID,
 	}, nil
 }
@@ -124,7 +153,12 @@ func (s *PaymentService) ProcessPayment(ctx context.Context, req *paymentpb.Proc
 func (s *PaymentService) RefundPayment(ctx context.Context, req *paymentpb.RefundPaymentRequest) (*sharedpb.Empty, error) {
 	s.logger.Info("Refunding payment", zap.String("payment_id", req.PaymentId))
 
-	payment, err := s.queries.GetPayment(ctx, uuid.MustParse(req.PaymentId))
+	paymentID, err := uuid.Parse(req.PaymentId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid payment_id: %w", err)
+	}
+
+	payment, err := s.queries.GetPayment(ctx, paymentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get payment: %w", err)
 	}
@@ -135,8 +169,7 @@ func (s *PaymentService) RefundPayment(ctx context.Context, req *paymentpb.Refun
 
 	status, transactionID, err := s.refundWithGateway(ctx, payment, req.Amount)
 	if err != nil {
-		s.logger.Error("Refund processing failed", zap.Error(err))
-		return nil, fmt.Errorf("refund processing failed: %w", err)
+		return nil, err
 	}
 
 	if err := s.queries.UpdatePaymentStatus(ctx, db.UpdatePaymentStatusParams{

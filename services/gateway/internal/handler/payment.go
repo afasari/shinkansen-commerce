@@ -109,7 +109,13 @@ func (h *PaymentHandler) processPayment(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	respondJSON(w, http.StatusOK, resp)
+	statusStr := resp.Status.String()
+	modifiedResp := map[string]interface{}{
+		"status":         statusStr,
+		"transaction_id": resp.TransactionId,
+	}
+
+	respondJSON(w, http.StatusOK, modifiedResp)
 }
 
 func (h *PaymentHandler) refundPayment(w http.ResponseWriter, r *http.Request, ctx context.Context, paymentID string) {

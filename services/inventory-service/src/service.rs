@@ -7,24 +7,25 @@ use tracing::{info, error, instrument};
 use prost_types::Timestamp;
 use uuid::Uuid;
 
+pub use shinkansen_proto::shinkansen::inventory::inventory_service_server::InventoryService;
 use shinkansen_proto::shinkansen::inventory::{
-    inventory_service_server::InventoryService as InventoryServiceTrait,
     GetStockRequest, GetStockResponse, StockItem as ProtoStockItem,
     UpdateStockRequest,
     ReserveStockRequest, ReserveStockResponse,
     ReleaseStockRequest,
     GetStockMovementsRequest, GetStockMovementsResponse, StockMovement as ProtoStockMovement,
 };
+
 use shinkansen_proto::shinkansen::common::{Empty, Pagination};
 
 use crate::repository::{Repository, StockItem, StockMovement};
 use crate::database::Database;
 
-pub struct InventoryService {
+pub struct InventoryServiceImpl {
     repository: Arc<Repository>,
 }
 
-impl InventoryService {
+impl InventoryServiceImpl {
     pub fn new(db: Database) -> Self {
         Self {
             repository: Arc::new(Repository::new(db)),
@@ -33,7 +34,7 @@ impl InventoryService {
 }
 
 #[tonic::async_trait]
-impl InventoryServiceTrait for InventoryService {
+impl InventoryService for InventoryServiceImpl {
     #[instrument(skip(self))]
     async fn get_stock(
         &self,
@@ -42,20 +43,30 @@ impl InventoryServiceTrait for InventoryService {
         let req = request.into_inner();
         info!("Getting stock for product_id: {:?}", req.product_id);
 
-        let product_id = parse_uuid(&req.product_id)?;
-        let variant_id = if req.variant_id.is_empty() {
-            None
+        // Handle direct stock_item_id lookup if provided
+        let stock = if !req.stock_item_id.is_empty() {
+            let stock_item_id = parse_uuid(&req.stock_item_id)?;
+            self.repository.get_stock_by_id(stock_item_id).await
+                .map_err(|e| Status::internal(format!("Failed to get stock: {}", e)))?
         } else {
-            Some(parse_uuid(&req.variant_id)?)
+            // Otherwise, use product_id/variant_id/warehouse_id lookup
+            let product_id = parse_uuid(&req.product_id)?;
+            let variant_id = if req.variant_id.is_empty() {
+                None
+            } else {
+                Some(parse_uuid(&req.variant_id)?)
+            };
+            let warehouse_id = parse_uuid(&req.warehouse_id)?;
+            self.repository.get_stock(product_id, variant_id, warehouse_id).await
+                .map_err(|e| Status::internal(format!("Failed to get stock: {}", e)))?
         };
-        let warehouse_id = parse_uuid(&req.warehouse_id)?;
 
-        match self.repository.get_stock(product_id, variant_id, warehouse_id).await {
-            Ok(Some(stock)) => {
-                let proto_item = stock_to_proto(stock);
+        match stock {
+            Some(s) => {
+                let proto_item = stock_to_proto(s);
                 Ok(Response::new(GetStockResponse { stock: Some(proto_item) }))
             }
-            Ok(None) => {
+            None => {
                 let proto_item = ProtoStockItem {
                     id: String::new(),
                     product_id: req.product_id.clone(),
@@ -68,10 +79,6 @@ impl InventoryServiceTrait for InventoryService {
                 };
                 Ok(Response::new(GetStockResponse { stock: Some(proto_item) }))
             }
-            Err(e) => {
-                error!("Failed to get stock: {:?}", e);
-                Err(Status::internal(format!("Failed to get stock: {}", e)))
-            }
         }
     }
     
@@ -83,63 +90,84 @@ impl InventoryServiceTrait for InventoryService {
         let req = request.into_inner();
         info!("Updating stock for product_id: {}, delta: {}", req.product_id, req.quantity_delta);
 
-        let product_id = parse_uuid(&req.product_id)?;
-        let variant_id = if req.variant_id.is_empty() {
-            None
+        // Determine the reference to use for movements (prefer reference, fall back to reason)
+        let reference = if !req.reference.is_empty() {
+            Some(req.reference.as_str())
+        } else if !req.reason.is_empty() {
+            Some(req.reason.as_str())
         } else {
-            Some(parse_uuid(&req.variant_id)?)
+            None
         };
-        let warehouse_id = parse_uuid(&req.warehouse_id)?;
 
-        let stock = match self.repository.get_stock(product_id, variant_id, warehouse_id).await {
-            Ok(Some(s)) => s,
-            Ok(None) => {
-                match self.repository.create_or_update_stock(
-                    product_id, variant_id, warehouse_id, req.quantity_delta
-                ).await {
-                    Ok(id) => {
-                        info!("Created new stock item: {}", id);
-                        let reason = if req.reason.is_empty() { None } else { Some(req.reason.as_str()) };
-                        if req.quantity_delta > 0 {
-                            if let Err(e) = self.repository.create_stock_movement(
-                                id, "MOVEMENT_TYPE_INBOUND", req.quantity_delta, reason
+        // Handle direct stock_item_id lookup if provided
+        let stock = if !req.stock_item_id.is_empty() {
+            let stock_item_id = parse_uuid(&req.stock_item_id)?;
+            match self.repository.get_stock_by_id(stock_item_id).await
+                .map_err(|e| Status::internal(format!("Failed to get stock: {}", e)))? {
+                Some(s) => s,
+                None => {
+                    error!("Stock item not found: {}", stock_item_id);
+                    return Err(Status::not_found(format!("Stock item not found: {}", stock_item_id)));
+                }
+            }
+        } else {
+            // Otherwise, use product_id/variant_id/warehouse_id lookup
+            let product_id = parse_uuid(&req.product_id)?;
+            let variant_id = if req.variant_id.is_empty() {
+                None
+            } else {
+                Some(parse_uuid(&req.variant_id)?)
+            };
+            let warehouse_id = parse_uuid(&req.warehouse_id)?;
+
+            match self.repository.get_stock(product_id, variant_id, warehouse_id).await {
+                Ok(Some(s)) => s,
+                Ok(None) => {
+                    match self.repository.create_or_update_stock(
+                        product_id, variant_id, warehouse_id, req.quantity_delta
+                    ).await {
+                        Ok(id) => {
+                            info!("Created new stock item: {}", id);
+                            if req.quantity_delta > 0 {
+                                if let Err(e) = self.repository.create_stock_movement(
+                                    id, "MOVEMENT_TYPE_INBOUND", req.quantity_delta, reference
+                                ).await {
+                                    error!("Failed to create movement: {:?}", e);
+                                }
+                            } else if let Err(e) = self.repository.create_stock_movement(
+                                id, "MOVEMENT_TYPE_OUTBOUND", req.quantity_delta, reference
                             ).await {
                                 error!("Failed to create movement: {:?}", e);
                             }
-                        } else if let Err(e) = self.repository.create_stock_movement(
-                            id, "MOVEMENT_TYPE_OUTBOUND", req.quantity_delta, reason
-                        ).await {
-                            error!("Failed to create movement: {:?}", e);
+                            return Ok(Response::new(Empty {}));
                         }
-                        return Ok(Response::new(Empty {}));
-                    }
-                    Err(e) => {
-                        error!("Failed to create stock: {:?}", e);
-                        return Err(Status::internal(format!("Failed to create stock: {}", e)));
+                        Err(e) => {
+                            error!("Failed to create stock: {:?}", e);
+                            return Err(Status::internal(format!("Failed to create stock: {}", e)));
+                        }
                     }
                 }
-            }
-            Err(e) => {
-                error!("Failed to get stock: {:?}", e);
-                return Err(Status::internal(format!("Failed to get stock: {}", e)));
+                Err(e) => {
+                    error!("Failed to get stock: {:?}", e);
+                    return Err(Status::internal(format!("Failed to get stock: {}", e)));
+                }
             }
         };
 
-        if let Err(e) = self.repository.update_stock_quantity(
-            product_id, variant_id, warehouse_id, req.quantity_delta
-        ).await {
+        // Update existing stock quantity
+        if let Err(e) = self.repository.update_stock_quantity_by_id(stock.id, req.quantity_delta).await {
             error!("Failed to update stock: {:?}", e);
             return Err(Status::internal(format!("Failed to update stock: {}", e)));
         }
 
+        // Create stock movement
         let movement_type = if req.quantity_delta > 0 {
             "MOVEMENT_TYPE_INBOUND"
         } else {
             "MOVEMENT_TYPE_OUTBOUND"
         };
-        let reason = if req.reason.is_empty() { None } else { Some(req.reason.as_str()) };
         if let Err(e) = self.repository.create_stock_movement(
-            stock.id, movement_type, req.quantity_delta, reason
+            stock.id, movement_type, req.quantity_delta, reference
         ).await {
             error!("Failed to create movement: {:?}", e);
         }
@@ -289,7 +317,7 @@ fn timestamp_to_proto(dt: DateTime<Utc>) -> Timestamp {
 
 fn timestamp_from_proto(ts: Timestamp) -> DateTime<Utc> {
     DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32)
-        .unwrap_or_else(|| Utc::now())
+        .unwrap_or_else(Utc::now)
 }
 
 fn stock_to_proto(stock: StockItem) -> ProtoStockItem {

@@ -888,6 +888,8 @@ definitions:
     properties:
       status:
         $ref: '#/definitions/orderOrderStatus'
+      reason:
+        type: string
   PaymentServiceProcessPaymentBody:
     type: object
     properties:
@@ -1063,6 +1065,7 @@ definitions:
       - SHIPMENT_STATUS_IN_TRANSIT
       - SHIPMENT_STATUS_DELIVERED
       - SHIPMENT_STATUS_CANCELLED
+      - SHIPMENT_STATUS_FAILED_DELIVERY
     default: SHIPMENT_STATUS_UNSPECIFIED
   deliveryTrackingEvent:
     type: object
@@ -1335,9 +1338,14 @@ definitions:
       - ORDER_STATUS_CONFIRMED
       - ORDER_STATUS_PROCESSING
       - ORDER_STATUS_SHIPPED
+      - ORDER_STATUS_IN_TRANSIT
       - ORDER_STATUS_DELIVERED
       - ORDER_STATUS_CANCELLED
-      - ORDER_STATUS_REFUNDED
+      - ORDER_STATUS_EXPIRED
+      - ORDER_STATUS_READY_FOR_PICKUP
+      - ORDER_STATUS_PICKED_UP
+      - ORDER_STATUS_FAILED_DELIVERY
+      - ORDER_STATUS_RETURNED
     default: ORDER_STATUS_UNSPECIFIED
   orderShippingAddress:
     type: object

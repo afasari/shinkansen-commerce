@@ -53,9 +53,14 @@ enum OrderStatus {
   ORDER_STATUS_CONFIRMED = 2;
   ORDER_STATUS_PROCESSING = 3;
   ORDER_STATUS_SHIPPED = 4;
-  ORDER_STATUS_DELIVERED = 5;
-  ORDER_STATUS_CANCELLED = 6;
-  ORDER_STATUS_REFUNDED = 7;
+  ORDER_STATUS_IN_TRANSIT = 5;
+  ORDER_STATUS_DELIVERED = 6;
+  ORDER_STATUS_CANCELLED = 7;
+  ORDER_STATUS_EXPIRED = 8;
+  ORDER_STATUS_READY_FOR_PICKUP = 9;
+  ORDER_STATUS_PICKED_UP = 10;
+  ORDER_STATUS_FAILED_DELIVERY = 11;
+  ORDER_STATUS_RETURNED = 12;
 }
 
 enum PaymentMethod {
@@ -111,6 +116,7 @@ message ListOrdersResponse {
 message UpdateOrderStatusRequest {
   string order_id = 1;
   OrderStatus status = 2;
+  string reason = 3;
 }
 
 message CancelOrderRequest {
@@ -135,4 +141,9 @@ message ReserveDeliverySlotRequest {
 
 message ReserveDeliverySlotResponse {
   string reservation_id = 1;
+}
+
+message CartSummary {
+  int32 item_count = 1;
+  shinkansen.common.Money subtotal = 2;
 }

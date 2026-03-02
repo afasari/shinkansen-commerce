@@ -19,7 +19,7 @@ WHERE deleted_at IS NULL
   AND ($2::uuid IS NULL OR category_id = $2)
   AND ($3::bigint IS NULL OR price_units >= $3)
   AND ($4::bigint IS NULL OR price_units <= $4)
-  AND ($5::boolean IS NULL OR (in_stock_only = false OR stock_quantity > 0))
+  AND ($5::boolean IS NULL OR $5 = false OR stock_quantity > 0)
   AND product_search_vector @@ plainto_tsquery($1)
 ORDER BY rank ASC, created_at DESC
 LIMIT $7 OFFSET $6

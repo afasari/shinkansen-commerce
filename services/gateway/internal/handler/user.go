@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	userpb "github.com/afasari/shinkansen-commerce/gen/proto/go/user"
+	"github.com/afasari/shinkansen-commerce/services/gateway/internal/middleware"
 	"google.golang.org/grpc"
 )
 
@@ -103,7 +104,7 @@ func (h *UserHandler) handleUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) handleMyAddresses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID := r.Context().Value("user_id")
+	userID := r.Context().Value(middleware.UserIDKey)
 	if userID == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -139,7 +140,7 @@ func (h *UserHandler) handleAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) getCurrentUser(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	userID := r.Context().Value("user_id")
+	userID := r.Context().Value(middleware.UserIDKey)
 	if userID == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -194,7 +195,7 @@ func (h *UserHandler) updateUser(w http.ResponseWriter, r *http.Request, ctx con
 }
 
 func (h *UserHandler) updateCurrentUser(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	userID := r.Context().Value("user_id")
+	userID := r.Context().Value(middleware.UserIDKey)
 	if userID == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

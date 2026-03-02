@@ -1,11 +1,8 @@
-use std::sync::Arc;
 use anyhow::Result;
 use tokio::net::TcpListener;
 use tonic::transport::Server;
 use tracing::{info, error};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
-use tower_http::trace::TraceLayer;
-use axum::Router;
 
 mod config;
 mod database;
@@ -13,8 +10,7 @@ mod repository;
 mod service;
 mod health;
 
-use shinkansen_proto::shinkansen::inventory::inventory_service_server::InventoryServiceServer;
-use service::InventoryService;
+use service::InventoryServiceImpl;
 use config::Config;
 use database::Database;
 
@@ -40,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     db.run_migrations().await?;
     info!("Migrations completed");
     
-    let inventory_service = InventoryService::new(db);
+    let inventory_service = InventoryServiceImpl::new(db);
     let inventory_grpc = shinkansen_proto::shinkansen::inventory::inventory_service_server::InventoryServiceServer::new(inventory_service);
     
     info!("Starting gRPC server on {}", cfg.grpc_server_address);

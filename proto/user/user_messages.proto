@@ -118,3 +118,7 @@ message DeleteAddressRequest {
   string user_id = 1;
   string address_id = 2;
 }
+
+message OptionalString {
+  string value = 1;
+}

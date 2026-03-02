@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::database::Database;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct StockItem {
     pub id: Uuid,
     pub product_id: Uuid,
@@ -18,6 +19,7 @@ pub struct StockItem {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct StockMovement {
     pub id: Uuid,
     pub stock_item_id: Uuid,
@@ -28,6 +30,7 @@ pub struct StockMovement {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct StockReservation {
     pub id: Uuid,
     pub order_id: Uuid,
@@ -57,7 +60,7 @@ impl Repository {
         warehouse_id: Uuid,
     ) -> Result<Option<StockItem>> {
         let stock = sqlx::query_as::<_, StockItem>(
-            "SELECT id, product_id, variant_id, warehouse_id, quantity, reserved_quantity, available_quantity, created_at, updated_at FROM inventory.stock_items WHERE product_id = $1 AND variant_id = $2 AND warehouse_id = $3"
+            "SELECT id, product_id, variant_id, warehouse_id, quantity, reserved_quantity, available_quantity, created_at, updated_at FROM inventory.stock_items WHERE product_id = $1 AND variant_id IS NOT DISTINCT FROM $2 AND warehouse_id = $3"
         )
         .bind(product_id)
         .bind(variant_id)
@@ -77,8 +80,8 @@ impl Repository {
         .await?;
 
         Ok(stock)
-    }
-    
+	}
+	
     pub async fn create_or_update_stock(
         &self,
         product_id: Uuid,
@@ -86,21 +89,34 @@ impl Repository {
         warehouse_id: Uuid,
         quantity: i32,
     ) -> Result<Uuid> {
-        let stock_id = sqlx::query_scalar(
-            "INSERT INTO inventory.stock_items (product_id, variant_id, warehouse_id, quantity, reserved_quantity, available_quantity, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, 0, $4, NOW(), NOW())
-             ON CONFLICT (product_id, variant_id, warehouse_id)
-             DO UPDATE SET quantity = inventory.stock_items.quantity + $4, updated_at = NOW()
-             RETURNING id"
-        )
-        .bind(product_id)
-        .bind(variant_id)
-        .bind(warehouse_id)
-        .bind(quantity)
-        .fetch_one(self.pool())
-        .await?;
+        // First try to get existing stock
+        let existing = self.get_stock(product_id, variant_id, warehouse_id).await?;
         
-        Ok(stock_id)
+        if let Some(stock) = existing {
+            // Update existing stock
+            sqlx::query(
+                "UPDATE inventory.stock_items SET quantity = quantity + $1, updated_at = NOW() WHERE id = $2"
+            )
+            .bind(quantity)
+            .bind(stock.id)
+            .execute(self.pool())
+            .await?;
+            Ok(stock.id)
+        } else {
+            // Insert new stock
+            let stock_id = sqlx::query_scalar(
+                "INSERT INTO inventory.stock_items (product_id, variant_id, warehouse_id, quantity, reserved_quantity, available_quantity, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, 0, $4, NOW(), NOW())
+                 RETURNING id"
+            )
+            .bind(product_id)
+            .bind(variant_id)
+            .bind(warehouse_id)
+            .bind(quantity)
+            .fetch_one(self.pool())
+            .await?;
+            Ok(stock_id)
+        }
     }
     
     pub async fn reserve_stock(
@@ -112,12 +128,12 @@ impl Repository {
     ) -> Result<()> {
         let mut tx = self.db.pool().begin().await?;
         
-        let updated = sqlx::query(
-            "UPDATE inventory.stock_items
-             SET reserved_quantity = reserved_quantity + $1, updated_at = NOW()
-             WHERE id = $2 AND available_quantity >= $1
-             RETURNING id"
-        )
+	let updated = sqlx::query(
+		"UPDATE inventory.stock_items
+		     SET reserved_quantity = reserved_quantity + $1, updated_at = NOW()
+		     WHERE id = $2 AND available_quantity >= $1
+		     RETURNING id, available_quantity, reserved_quantity"
+	)
         .bind(quantity)
         .bind(stock_item_id)
         .fetch_optional(&mut *tx)
@@ -171,6 +187,7 @@ impl Repository {
         Ok(())
     }
     
+    #[allow(dead_code)]
     pub async fn update_stock_quantity(
         &self,
         product_id: Uuid,
@@ -187,7 +204,7 @@ impl Repository {
         sqlx::query(&format!(
             "UPDATE inventory.stock_items
              SET quantity = {}, updated_at = NOW()
-             WHERE product_id = $1 AND variant_id = $2 AND warehouse_id = $3",
+             WHERE product_id = $1 AND variant_id IS NOT DISTINCT FROM $2 AND warehouse_id = $3",
             new_quantity
         ))
         .bind(product_id)
@@ -198,7 +215,32 @@ impl Repository {
         
         Ok(())
     }
-    
+	
+	pub async fn update_stock_quantity_by_id(
+		&self,
+		stock_item_id: Uuid,
+		delta: i32,
+	) -> Result<()> {
+        let new_quantity = if delta >= 0 {
+            format!("GREATEST(0, inventory.stock_items.quantity + {})", delta)
+        } else {
+            format!("inventory.stock_items.quantity + {}", delta)
+        };
+
+        sqlx::query(&format!(
+            "UPDATE inventory.stock_items
+             SET quantity = {}, available_quantity = GREATEST(0, inventory.stock_items.quantity + {} - inventory.stock_items.reserved_quantity), updated_at = NOW()
+             WHERE id = $1",
+            new_quantity,
+            delta
+        ))
+        .bind(stock_item_id)
+        .execute(self.pool())
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn create_stock_movement(
         &self,
         stock_item_id: Uuid,
@@ -244,18 +286,18 @@ impl Repository {
     }
 }
 
-#[cfg(test)]
 impl Repository {
+    #[allow(dead_code)]
     pub async fn clear_all(&self) -> Result<()> {
-        sqlx::query("DELETE FROM inventory.stock_reservations")
-            .execute(self.pool())
-            .await?;
-        sqlx::query("DELETE FROM inventory.stock_movements")
-            .execute(self.pool())
-            .await?;
-        sqlx::query("DELETE FROM inventory.stock_items")
-            .execute(self.pool())
-            .await?;
-        Ok(())
-    }
+		sqlx::query("DELETE FROM inventory.stock_reservations")
+			.execute(self.pool())
+			.await?;
+		sqlx::query("DELETE FROM inventory.stock_movements")
+			.execute(self.pool())
+			.await?;
+		sqlx::query("DELETE FROM inventory.stock_items")
+			.execute(self.pool())
+			.await?;
+		Ok(())
+	}
 }

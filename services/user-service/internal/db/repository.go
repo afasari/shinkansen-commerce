@@ -112,8 +112,8 @@ func NewQueries(db *DB) *Queries {
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
 	const sql = `
-		INSERT INTO users.users (email, password_hash, name, phone, active, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, NOW(), NOW())
+		INSERT INTO users.users (email, password_hash, name, phone)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id
 	`
 	row := q.db.pool.QueryRow(ctx, sql, arg.Email, arg.PasswordHash, arg.Name, arg.Phone)

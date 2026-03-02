@@ -3,9 +3,14 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+)
+
+var (
+	ErrCacheMiss = fmt.Errorf("cache miss")
 )
 
 const (
@@ -49,6 +54,9 @@ func NewRedisCache(client *redis.Client) *RedisCache {
 func (c *RedisCache) Get(ctx context.Context, key string, dest interface{}) error {
 	val, err := c.client.Get(ctx, key).Result()
 	if err != nil {
+		if err == redis.Nil {
+			return ErrCacheMiss
+		}
 		return err
 	}
 	return json.Unmarshal([]byte(val), dest)

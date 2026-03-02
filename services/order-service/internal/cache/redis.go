@@ -9,6 +9,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+var (
+	ErrCacheMiss = fmt.Errorf("cache miss")
+)
+
 const (
 	DefaultTTL = 5 * time.Minute
 	ShortTTL   = 1 * time.Minute
@@ -33,7 +37,7 @@ func (c *RedisCache) Get(ctx context.Context, key string, dest interface{}) erro
 	val, err := c.client.Get(ctx, key).Bytes()
 	if err != nil {
 		if err == redis.Nil {
-			return fmt.Errorf("cache miss")
+			return ErrCacheMiss
 		}
 		return err
 	}
@@ -59,8 +63,14 @@ func (c *RedisCache) Delete(ctx context.Context, key string) error {
 }
 
 func NewRedisClient(redisURL string) *redis.Client {
+	// Parse Redis URL to extract host:port
+	// Format: redis://host:port or just host:port
+	addr := redisURL
+	if len(redisURL) > 8 && redisURL[:8] == "redis://" {
+		addr = redisURL[8:]
+	}
 	return redis.NewClient(&redis.Options{
-		Addr: redisURL,
+		Addr: addr,
 	})
 }
 

@@ -100,11 +100,36 @@ func TestCompleteOrderFlow(t *testing.T) {
 		}
 	})
 
+	t.Run("Login Existing User (to get token for cleanup)", func(t *testing.T) {
+		loginReq := map[string]interface{}{
+			"email":    testEmail,
+			"password": testPassword,
+		}
+
+		var resp map[string]interface{}
+		err := client.postJSON("/v1/users/login", loginReq, &resp)
+		if err == nil {
+			client.authToken = resp["access_token"].(string)
+		}
+	})
+
+	t.Run("Delete Test User (cleanup)", func(t *testing.T) {
+		if client.authToken != "" {
+			_, err := client.doRequest("DELETE", "/v1/users/me", nil, client.authToken)
+			if err != nil {
+				t.Logf("Failed to delete test user (may not exist): %v", err)
+			}
+			client.authToken = ""
+		}
+	})
+
 	var userID string
+	var userEmail string
 
 	t.Run("Register User", func(t *testing.T) {
+		userEmail = fmt.Sprintf("test+%d@example.com", time.Now().Unix())
 		registerReq := map[string]interface{}{
-			"email":    testEmail,
+			"email":    userEmail,
 			"password": testPassword,
 			"name":     testName,
 			"phone":    testPhone,
@@ -137,8 +162,8 @@ func TestCompleteOrderFlow(t *testing.T) {
 		}
 
 		user := resp["user"].(map[string]interface{})
-		if user["email"] != testEmail {
-			t.Errorf("Expected email %s, got %s", testEmail, user["email"])
+		if user["email"] != userEmail {
+			t.Errorf("Expected email %s, got %s", userEmail, user["email"])
 		}
 	})
 
@@ -275,7 +300,10 @@ func TestCompleteOrderFlow(t *testing.T) {
 			t.Fatalf("List orders failed: %v", err)
 		}
 
-		orders := resp["orders"].([]interface{})
+		orders := []interface{}{}
+		if resp["orders"] != nil {
+			orders = resp["orders"].([]interface{})
+		}
 		t.Logf("Found %d orders", len(orders))
 	})
 
@@ -283,7 +311,7 @@ func TestCompleteOrderFlow(t *testing.T) {
 	t.Run("Create Payment", func(t *testing.T) {
 		paymentReq := map[string]interface{}{
 			"order_id": orderID,
-			"method":   "PAYMENT_METHOD_CREDIT_CARD",
+			"method":   1, // PAYMENT_METHOD_CREDIT_CARD
 			"amount":   map[string]interface{}{"units": int64(2000), "currency": "JPY"},
 		}
 
@@ -323,7 +351,7 @@ func TestCompleteOrderFlow(t *testing.T) {
 
 	t.Run("Update Order Status", func(t *testing.T) {
 		statusReq := map[string]interface{}{
-			"status": "ORDER_STATUS_CONFIRMED",
+			"status": 2, // ORDER_STATUS_CONFIRMED
 		}
 
 		resp, err := client.doRequest("POST", "/v1/orders/"+orderID+"/status", statusReq, client.authToken)

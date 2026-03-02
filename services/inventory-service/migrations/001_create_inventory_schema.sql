@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS inventory.stock_items (
     quantity INT NOT NULL DEFAULT 0,
     reserved_quantity INT NOT NULL DEFAULT 0,
     available_quantity INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_product_warehouse UNIQUE (product_id, variant_id, warehouse_id)
 );
 
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS inventory.stock_movements (
     movement_type TEXT NOT NULL,
     quantity INT NOT NULL,
     reference TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Create stock_reservations table
@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS inventory.stock_reservations (
     order_id UUID NOT NULL,
     stock_item_id UUID NOT NULL REFERENCES inventory.stock_items(id) ON DELETE CASCADE,
     quantity INT NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_order_stock UNIQUE (order_id, stock_item_id)
 );
 
@@ -54,6 +54,8 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_available_quantity ON inventory.stock_items;
 
 CREATE TRIGGER trigger_update_available_quantity
 BEFORE INSERT OR UPDATE ON inventory.stock_items

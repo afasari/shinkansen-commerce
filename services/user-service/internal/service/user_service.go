@@ -7,7 +7,10 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	userpb "github.com/afasari/shinkansen-commerce/gen/proto/go/user"
@@ -36,6 +39,13 @@ func NewUserService(queries db.Querier, cacheClient cache.Cache, logger *zap.Log
 	}
 }
 
+func isDuplicateKeyError(err error) bool {
+	if pgErr, ok := err.(*pgconn.PgError); ok {
+		return pgErr.SQLState() == "23505"
+	}
+	return false
+}
+
 func (s *UserService) RegisterUser(ctx context.Context, req *userpb.RegisterUserRequest) (*userpb.RegisterUserResponse, error) {
 	s.logger.Info("Registering user", zap.String("email", req.Email))
 
@@ -54,7 +64,10 @@ func (s *UserService) RegisterUser(ctx context.Context, req *userpb.RegisterUser
 
 	if err != nil {
 		s.logger.Error("Failed to create user", zap.Error(err))
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		if isDuplicateKeyError(err) {
+			return nil, status.Error(codes.AlreadyExists, "email already exists")
+		}
+		return nil, status.Error(codes.Internal, "failed to create user")
 	}
 
 	accessToken, err := s.generateAccessToken(userID, req.Email)
@@ -82,16 +95,16 @@ func (s *UserService) LoginUser(ctx context.Context, req *userpb.LoginUserReques
 	user, err := s.queries.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		s.logger.Error("User not found", zap.Error(err))
-		return nil, fmt.Errorf("user not found")
+		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		s.logger.Warn("Failed password check", zap.String("email", req.Email))
-		return nil, fmt.Errorf("invalid credentials")
+		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 
 	if !user.Active {
-		return nil, fmt.Errorf("user is inactive")
+		return nil, status.Error(codes.PermissionDenied, "user is inactive")
 	}
 
 	accessToken, err := s.generateAccessToken(user.ID, user.Email)
@@ -127,7 +140,8 @@ func (s *UserService) GetUser(ctx context.Context, req *userpb.GetUserRequest) (
 
 	user, err := s.queries.GetUser(ctx, uuid.MustParse(req.UserId))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		s.logger.Error("Failed to get user", zap.Error(err))
+		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
 	if err := s.cache.Set(ctx, cacheKey, user, cache.DefaultTTL); err != nil {
@@ -149,7 +163,8 @@ func (s *UserService) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 	userID := uuid.MustParse(req.UserId)
 	user, err := s.queries.GetUser(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		s.logger.Error("Failed to get user", zap.Error(err))
+		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
 	var name, phone *string
@@ -168,7 +183,8 @@ func (s *UserService) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 
 	err = s.queries.UpdateUser(ctx, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update user: %w", err)
+		s.logger.Error("Failed to update user", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to update user")
 	}
 
 	cacheKey := cache.UserCacheKey(userID.String())
@@ -176,7 +192,8 @@ func (s *UserService) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 
 	updatedUser, err := s.queries.GetUser(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get updated user: %w", err)
+		s.logger.Error("Failed to get updated user", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to get updated user")
 	}
 
 	return &userpb.UpdateUserResponse{
@@ -201,7 +218,8 @@ func (s *UserService) AddAddress(ctx context.Context, req *userpb.AddAddressRequ
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create address: %w", err)
+		s.logger.Error("Failed to create address", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to create address")
 	}
 
 	cacheKey := cache.AddressesCacheKey(userID.String())
@@ -219,7 +237,8 @@ func (s *UserService) ListAddresses(ctx context.Context, req *userpb.ListAddress
 
 	addresses, err := s.queries.ListAddresses(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list addresses: %w", err)
+		s.logger.Error("Failed to list addresses", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to list addresses")
 	}
 
 	protoAddresses := make([]*userpb.Address, 0, len(addresses))
@@ -239,7 +258,8 @@ func (s *UserService) UpdateAddress(ctx context.Context, req *userpb.UpdateAddre
 
 	address, err := s.queries.GetAddress(ctx, addressID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get address: %w", err)
+		s.logger.Error("Failed to get address", zap.Error(err))
+		return nil, status.Error(codes.NotFound, "address not found")
 	}
 
 	var name, phone, postalCode, prefecture, city, addressLine1, addressLine2 *string
@@ -307,7 +327,8 @@ func (s *UserService) UpdateAddress(ctx context.Context, req *userpb.UpdateAddre
 
 	err = s.queries.UpdateAddress(ctx, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update address: %w", err)
+		s.logger.Error("Failed to update address", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to update address")
 	}
 
 	cacheKey := cache.AddressesCacheKey(address.UserID.String())
@@ -315,7 +336,8 @@ func (s *UserService) UpdateAddress(ctx context.Context, req *userpb.UpdateAddre
 
 	updatedAddress, err := s.queries.GetAddress(ctx, addressID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get updated address: %w", err)
+		s.logger.Error("Failed to get updated address", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to get updated address")
 	}
 
 	return &userpb.UpdateAddressResponse{
@@ -330,12 +352,14 @@ func (s *UserService) DeleteAddress(ctx context.Context, req *userpb.DeleteAddre
 
 	address, err := s.queries.GetAddress(ctx, addressID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get address: %w", err)
+		s.logger.Error("Failed to get address", zap.Error(err))
+		return nil, status.Error(codes.NotFound, "address not found")
 	}
 
 	err = s.queries.DeleteAddress(ctx, db.DeleteAddressParams{ID: addressID})
 	if err != nil {
-		return nil, fmt.Errorf("failed to delete address: %w", err)
+		s.logger.Error("Failed to delete address", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to delete address")
 	}
 
 	cacheKey := cache.AddressesCacheKey(address.UserID.String())

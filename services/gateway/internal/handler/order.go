@@ -8,6 +8,7 @@ import (
 
 	orderpb "github.com/afasari/shinkansen-commerce/gen/proto/go/order"
 	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
+	"github.com/afasari/shinkansen-commerce/services/gateway/internal/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -70,7 +71,7 @@ func (h *OrderHandler) handleOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) listOrders(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	userID := r.Context().Value("user_id")
+	userID := r.Context().Value(middleware.UserIDKey)
 	if userID == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -119,7 +120,7 @@ func (h *OrderHandler) createOrder(w http.ResponseWriter, r *http.Request, ctx c
 		return
 	}
 
-	userID := r.Context().Value("user_id")
+	userID := r.Context().Value(middleware.UserIDKey)
 	if userID != nil {
 		req.UserId = userID.(string)
 	}

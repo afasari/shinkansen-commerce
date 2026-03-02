@@ -25,12 +25,13 @@ const (
 type ShipmentStatus int32
 
 const (
-	ShipmentStatus_SHIPMENT_STATUS_UNSPECIFIED ShipmentStatus = 0
-	ShipmentStatus_SHIPMENT_STATUS_PREPARING   ShipmentStatus = 1
-	ShipmentStatus_SHIPMENT_STATUS_SHIPPED     ShipmentStatus = 2
-	ShipmentStatus_SHIPMENT_STATUS_IN_TRANSIT  ShipmentStatus = 3
-	ShipmentStatus_SHIPMENT_STATUS_DELIVERED   ShipmentStatus = 4
-	ShipmentStatus_SHIPMENT_STATUS_CANCELLED   ShipmentStatus = 5
+	ShipmentStatus_SHIPMENT_STATUS_UNSPECIFIED     ShipmentStatus = 0
+	ShipmentStatus_SHIPMENT_STATUS_PREPARING       ShipmentStatus = 1
+	ShipmentStatus_SHIPMENT_STATUS_SHIPPED         ShipmentStatus = 2
+	ShipmentStatus_SHIPMENT_STATUS_IN_TRANSIT      ShipmentStatus = 3
+	ShipmentStatus_SHIPMENT_STATUS_DELIVERED       ShipmentStatus = 4
+	ShipmentStatus_SHIPMENT_STATUS_CANCELLED       ShipmentStatus = 5
+	ShipmentStatus_SHIPMENT_STATUS_FAILED_DELIVERY ShipmentStatus = 6
 )
 
 // Enum value maps for ShipmentStatus.
@@ -42,14 +43,16 @@ var (
 		3: "SHIPMENT_STATUS_IN_TRANSIT",
 		4: "SHIPMENT_STATUS_DELIVERED",
 		5: "SHIPMENT_STATUS_CANCELLED",
+		6: "SHIPMENT_STATUS_FAILED_DELIVERY",
 	}
 	ShipmentStatus_value = map[string]int32{
-		"SHIPMENT_STATUS_UNSPECIFIED": 0,
-		"SHIPMENT_STATUS_PREPARING":   1,
-		"SHIPMENT_STATUS_SHIPPED":     2,
-		"SHIPMENT_STATUS_IN_TRANSIT":  3,
-		"SHIPMENT_STATUS_DELIVERED":   4,
-		"SHIPMENT_STATUS_CANCELLED":   5,
+		"SHIPMENT_STATUS_UNSPECIFIED":     0,
+		"SHIPMENT_STATUS_PREPARING":       1,
+		"SHIPMENT_STATUS_SHIPPED":         2,
+		"SHIPMENT_STATUS_IN_TRANSIT":      3,
+		"SHIPMENT_STATUS_DELIVERED":       4,
+		"SHIPMENT_STATUS_CANCELLED":       5,
+		"SHIPMENT_STATUS_FAILED_DELIVERY": 6,
 	}
 )
 
@@ -837,14 +840,15 @@ const file_delivery_delivery_messages_proto_rawDesc = "" +
 	"\vshipment_id\x18\x01 \x01(\tR\n" +
 	"shipmentId\x12;\n" +
 	"\x06status\x18\x02 \x01(\x0e2#.shinkansen.delivery.ShipmentStatusR\x06status\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription*\xcb\x01\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription*\xf0\x01\n" +
 	"\x0eShipmentStatus\x12\x1f\n" +
 	"\x1bSHIPMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19SHIPMENT_STATUS_PREPARING\x10\x01\x12\x1b\n" +
 	"\x17SHIPMENT_STATUS_SHIPPED\x10\x02\x12\x1e\n" +
 	"\x1aSHIPMENT_STATUS_IN_TRANSIT\x10\x03\x12\x1d\n" +
 	"\x19SHIPMENT_STATUS_DELIVERED\x10\x04\x12\x1d\n" +
-	"\x19SHIPMENT_STATUS_CANCELLED\x10\x05B>Z<github.com/afasari/shinkansen-commerce/gen/proto/go/deliveryb\x06proto3"
+	"\x19SHIPMENT_STATUS_CANCELLED\x10\x05\x12#\n" +
+	"\x1fSHIPMENT_STATUS_FAILED_DELIVERY\x10\x06B>Z<github.com/afasari/shinkansen-commerce/gen/proto/go/deliveryb\x06proto3"
 
 var (
 	file_delivery_delivery_messages_proto_rawDescOnce sync.Once

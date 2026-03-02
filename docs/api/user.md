@@ -77,6 +77,10 @@ Data structure for user operations.
 
 Data structure for user operations.
 
+### OptionalString
+
+Data structure for user operations.
+
 ## Implementation
 
 **Language:** Go

@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use std::env;
 use std::net::SocketAddr;
 
 fn default_grpc_address() -> String {

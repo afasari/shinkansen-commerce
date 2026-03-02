@@ -13,14 +13,14 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS idx_products_name_trgm 
 ON catalog.products USING gin(name gin_trgm_ops);
 
--- Step 3: Create fuzzy search function
--- Combines exact full-text match with fuzzy trigram match
+-- Step 3: Add fuzzy search function
+-- Combines exact full-text match with trigram similarity
 CREATE OR REPLACE FUNCTION catalog.search_products_fuzzy(
     search_query text,
     category_filter uuid DEFAULT NULL,
     min_price bigint DEFAULT NULL,
     max_price bigint DEFAULT NULL,
-    in_stock_only boolean DEFAULT NULL,
+    stock_only boolean DEFAULT NULL,
     fuzzy_threshold real DEFAULT 0.3
 )
 RETURNS TABLE (
@@ -45,16 +45,13 @@ BEGIN
         AND (category_filter IS NULL OR p.category_id = category_filter)
         AND (min_price IS NULL OR p.price_units >= min_price)
         AND (max_price IS NULL OR p.price_units <= max_price)
-        AND (in_stock_only IS FALSE OR p.stock_quantity > 0)
+        AND (NOT stock_only OR p.stock_quantity > 0)
         AND (
-            -- Exact full-text match (highest priority)
             p.product_search_vector @@ plainto_tsquery(search_query)
             OR
-            -- Fuzzy trigram match (lower priority, for typo correction)
             SIMILARITY(p.name, search_query) >= fuzzy_threshold
         )
     ORDER BY 
-        -- Exact matches first
         CASE WHEN p.product_search_vector @@ plainto_tsquery(search_query) THEN 0 ELSE 1 END,
         rank DESC,
         similarity DESC,
@@ -99,7 +96,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Step 7: Create function to get top search queries
--- Returns most searched queries in the last N days
+-- Returns most searched queries in last N days
 CREATE OR REPLACE FUNCTION catalog.get_top_search_queries(
     days_ago integer DEFAULT 7
 )
@@ -111,66 +108,18 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT 
-        query,
+        sa.query,
         COUNT(*) as search_count,
-        COUNT(DISTINCT user_id) as unique_users
-    FROM catalog.search_analytics
-    WHERE created_at >= NOW() - INTERVAL '1 day' * days_ago
-    GROUP BY query
+        COUNT(DISTINCT sa.user_id) as unique_users
+    FROM catalog.search_analytics sa
+    WHERE sa.created_at >= NOW() - INTERVAL '1 day' * days_ago
+    GROUP BY sa.query
     ORDER BY search_count DESC
     LIMIT 100;
 END;
 $$ LANGUAGE plpgsql;
 
--- Step 8: Drop and recreate fuzzy search function with correct logic
-DROP FUNCTION IF EXISTS catalog.search_products_fuzzy();
-
-CREATE OR REPLACE FUNCTION catalog.search_products_fuzzy(
-    search_query text,
-    category_filter uuid DEFAULT NULL,
-    min_price bigint DEFAULT NULL,
-    max_price bigint DEFAULT NULL,
-    in_stock_only boolean DEFAULT NULL,
-    fuzzy_threshold real DEFAULT 0.3
-)
-RETURNS TABLE (
-    id uuid,
-    name text,
-    description text,
-    rank real,
-    similarity real
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        p.id,
-        p.name,
-        p.description,
-        ts_rank(p.product_search_vector, plainto_tsquery(search_query)) AS rank,
-        SIMILARITY(p.name, search_query) AS similarity
-    FROM catalog.products p
-    WHERE 
-        p.deleted_at IS NULL
-        AND p.active = true
-        AND (category_filter IS NULL OR p.category_id = category_filter)
-        AND (min_price IS NULL OR p.price_units >= min_price)
-        AND (max_price IS NULL OR p.price_units <= max_price)
-        AND (NOT in_stock_only OR p.stock_quantity > 0)
-        AND (
-            -- Exact full-text match (highest priority)
-            p.product_search_vector @@ plainto_tsquery(search_query)
-            OR
-            -- Fuzzy trigram match (lower priority, for typo correction)
-            SIMILARITY(p.name, search_query) >= fuzzy_threshold
-        )
-    ORDER BY 
-        -- Exact matches first
-        CASE WHEN p.product_search_vector @@ plainto_tsquery(search_query) THEN 0 ELSE 1 END,
-        rank DESC,
-        similarity DESC,
-        p.created_at DESC;
-END;
-$$ LANGUAGE plpgsql;
+-- Step 8: Add documentation comments
 COMMENT ON EXTENSION pg_trgm IS 
     'PostgreSQL extension providing trigram matching for fuzzy text search. Used for typo correction in product search.';
 
@@ -178,7 +127,7 @@ COMMENT ON INDEX catalog.idx_products_name_trgm IS
     'GIN trigram index for fuzzy name matching. Enables similarity() function for efficient typo correction.';
 
 COMMENT ON FUNCTION catalog.search_products_fuzzy() IS 
-    'Fuzzy search function combining exact full-text match with trigram similarity. Parameters: search_query, category_filter, min_price, max_price, in_stock_only, fuzzy_threshold. Returns ranked results with similarity score.';
+    'Fuzzy search function combining exact full-text match with trigram similarity. Parameters: search_query, category_filter, min_price, max_price, stock_only, fuzzy_threshold. Returns ranked results with similarity score.';
 
 COMMENT ON TABLE catalog.search_analytics IS 
     'Analytics table tracking search queries, results count, and user behavior. Used for business intelligence, product optimization, and search insights.';

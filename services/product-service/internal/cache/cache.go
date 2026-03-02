@@ -71,7 +71,13 @@ func ProductSearchCacheKey(query string) string {
 }
 
 func NewRedisClient(redisURL string) *redis.Client {
+	// Parse Redis URL to extract host:port
+	// Format: redis://host:port or just host:port
+	addr := redisURL
+	if len(redisURL) > 8 && redisURL[:8] == "redis://" {
+		addr = redisURL[8:]
+	}
 	return redis.NewClient(&redis.Options{
-		Addr: redisURL,
+		Addr: addr,
 	})
 }

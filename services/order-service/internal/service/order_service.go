@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	orderpb "github.com/afasari/shinkansen-commerce/gen/proto/go/order"
@@ -12,33 +13,76 @@ import (
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/db"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/pkg/pgutil"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type OrderService struct {
 	orderpb.UnimplementedOrderServiceServer
-	queries       db.Querier
-	productClient productpb.ProductServiceClient
-	cache         cache.Cache
-	logger        *zap.Logger
+	queries        db.Querier
+	productClient  productpb.ProductServiceClient
+	cache          cache.Cache
+	cartService    *CartService
+	stateMachine   *OrderStateMachine
+	eventPublisher *OrderEventPublisher
+	logger         *zap.Logger
 }
 
-func NewOrderService(queries db.Querier, productClient productpb.ProductServiceClient, cacheClient cache.Cache, logger *zap.Logger) *OrderService {
+func NewOrderService(
+	queries db.Querier,
+	productClient productpb.ProductServiceClient,
+	cacheClient cache.Cache,
+	logger *zap.Logger,
+) *OrderService {
 	return &OrderService{
-		queries:       queries,
-		productClient: productClient,
-		cache:         cacheClient,
-		logger:        logger,
+		queries:        queries,
+		productClient:  productClient,
+		cache:          cacheClient,
+		cartService:    nil,                          // Optional - can be set later if needed
+		stateMachine:   NewOrderStateMachine(logger), // Create default state machine
+		eventPublisher: nil,                          // Optional - event publishing can be added later
+		logger:         logger,
 	}
+}
+
+func isDuplicateKeyError(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.SQLState() == "23505"
+}
+
+// SetEventPublisher sets the event publisher (optional)
+func (s *OrderService) SetEventPublisher(publisher *OrderEventPublisher) {
+	s.eventPublisher = publisher
+}
+
+// SetCartService sets the cart service (optional)
+func (s *OrderService) SetCartService(cartService *CartService) {
+	s.cartService = cartService
+}
+
+// SetStateMachine sets the state machine (optional)
+func (s *OrderService) SetStateMachine(stateMachine *OrderStateMachine) {
+	s.stateMachine = stateMachine
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.CreateOrderResponse, error) {
 	s.logger.Info("Creating order", zap.String("user_id", req.UserId))
 
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user_id")
+	}
+
 	if len(req.Items) == 0 {
-		return nil, fmt.Errorf("order must have at least one item")
+		return nil, status.Error(codes.InvalidArgument, "order must have at least one item")
 	}
 
 	var subtotalUnits int64
@@ -47,11 +91,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 		productResp, err := s.productClient.GetProduct(ctx, &productpb.GetProductRequest{ProductId: item.ProductId})
 		if err != nil {
 			s.logger.Error("Failed to get product", zap.String("product_id", item.ProductId), zap.Error(err))
-			return nil, fmt.Errorf("failed to get product %s: %w", item.ProductId, err)
+			return nil, status.Error(codes.NotFound, fmt.Sprintf("product %s not found", item.ProductId))
 		}
 
 		if productResp.Product.StockQuantity < item.Quantity {
-			return nil, fmt.Errorf("product %s has insufficient stock", item.ProductId)
+			return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("product %s has insufficient stock", item.ProductId))
 		}
 
 		itemTotalUnits := productResp.Product.Price.Units * int64(item.Quantity)
@@ -61,10 +105,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 	taxUnits := int64(float64(subtotalUnits) * 0.10)
 	totalUnits := subtotalUnits + taxUnits
 
-	orderNumber := fmt.Sprintf("ORD-%d", uuid.New().ID())
+	orderNumber := fmt.Sprintf("ORD-%s", uuid.New().String())
 
 	orderID, err := s.queries.CreateOrder(ctx, db.CreateOrderParams{
-		UserID:           pgutil.ToPG(uuid.MustParse(req.UserId)),
+		OrderNumber:      orderNumber,
+		UserID:           pgutil.ToPG(userID),
 		Status:           int32(orderpb.OrderStatus_ORDER_STATUS_PENDING),
 		SubtotalUnits:    subtotalUnits,
 		SubtotalCurrency: "JPY",
@@ -80,12 +125,40 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 	})
 	if err != nil {
 		s.logger.Error("Failed to create order", zap.Error(err))
-		return nil, fmt.Errorf("failed to create order: %w", err)
+		if isDuplicateKeyError(err) {
+			return nil, status.Error(codes.AlreadyExists, "order number already exists")
+		}
+		return nil, status.Error(codes.Internal, "failed to create order")
 	}
 
-	_ = orderNumber
+	// Publish order created event
+	if s.eventPublisher != nil {
+		orderProto := &orderpb.Order{
+			Id:              pgutil.FromPG(orderID),
+			OrderNumber:     orderNumber,
+			UserId:          req.UserId,
+			Status:          orderpb.OrderStatus_ORDER_STATUS_PENDING,
+			SubtotalAmount:  s.moneyToProto(subtotalUnits, "JPY"),
+			TaxAmount:       s.moneyToProto(taxUnits, "JPY"),
+			DiscountAmount:  s.moneyToProto(0, "JPY"),
+			TotalAmount:     s.moneyToProto(totalUnits, "JPY"),
+			PointsApplied:   0,
+			ShippingAddress: req.ShippingAddress,
+			PaymentMethod:   req.PaymentMethod,
+			CreatedAt:       timestamppb.Now(),
+		}
+		if err := s.eventPublisher.PublishOrderCreated(ctx, orderProto); err != nil {
+			s.logger.Warn("Failed to publish order created event", zap.Error(err))
+		}
+	}
 
 	for _, item := range req.Items {
+		productID, err := uuid.Parse(item.ProductId)
+		if err != nil {
+			s.logger.Error("Failed to parse product ID", zap.String("product_id", item.ProductId), zap.Error(err))
+			continue
+		}
+
 		productResp, err := s.productClient.GetProduct(ctx, &productpb.GetProductRequest{ProductId: item.ProductId})
 		if err != nil {
 			s.logger.Error("Failed to get product for item", zap.String("product_id", item.ProductId), zap.Error(err))
@@ -96,7 +169,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 
 		err = s.queries.AddOrderItem(ctx, db.AddOrderItemParams{
 			OrderID:            orderID,
-			ProductID:          pgutil.ToPG(uuid.MustParse(item.ProductId)),
+			ProductID:          pgutil.ToPG(productID),
 			VariantID:          pgutil.ToPGFromString(item.VariantId),
 			ProductName:        productResp.Product.Name,
 			Quantity:           item.Quantity,
@@ -120,6 +193,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 func (s *OrderService) GetOrder(ctx context.Context, req *orderpb.GetOrderRequest) (*orderpb.GetOrderResponse, error) {
 	s.logger.Info("Getting order", zap.String("order_id", req.OrderId))
 
+	if req.OrderId == "" {
+		return nil, status.Error(codes.InvalidArgument, "order_id is required")
+	}
+
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+
 	cacheKey := cache.OrderCacheKey(req.OrderId)
 	var cached db.OrdersOrders
 
@@ -132,18 +214,18 @@ func (s *OrderService) GetOrder(ctx context.Context, req *orderpb.GetOrderReques
 
 	s.logger.Debug("Order cache miss", zap.String("order_id", req.OrderId))
 
-	orderID := pgutil.ToPG(uuid.MustParse(req.OrderId))
-	order, err := s.queries.GetOrder(ctx, orderID)
+	orderIDpg := pgutil.ToPG(orderID)
+	order, err := s.queries.GetOrder(ctx, orderIDpg)
 	if err != nil {
 		s.logger.Error("Failed to get order", zap.String("order_id", req.OrderId), zap.Error(err))
-		return nil, fmt.Errorf("failed to get order: %w", err)
+		return nil, status.Error(codes.NotFound, "order not found")
 	}
 
 	if err := s.cache.Set(ctx, cacheKey, order, cache.DefaultTTL); err != nil {
 		s.logger.Warn("Failed to cache order", zap.Error(err))
 	}
 
-	orderItems, err := s.queries.GetOrderItems(ctx, orderID)
+	orderItems, err := s.queries.GetOrderItems(ctx, orderIDpg)
 	if err != nil {
 		s.logger.Warn("Failed to get order items", zap.Error(err))
 	}
@@ -161,14 +243,23 @@ func (s *OrderService) GetOrder(ctx context.Context, req *orderpb.GetOrderReques
 func (s *OrderService) ListOrders(ctx context.Context, req *orderpb.ListOrdersRequest) (*orderpb.ListOrdersResponse, error) {
 	s.logger.Info("Listing orders", zap.String("user_id", req.UserId))
 
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user_id")
+	}
+
 	orders, err := s.queries.ListUserOrders(ctx, db.ListUserOrdersParams{
-		UserID: pgutil.ToPG(uuid.MustParse(req.UserId)),
+		UserID: pgutil.ToPG(userID),
 		Limit:  req.Pagination.Limit,
 		Offset: (req.Pagination.Page - 1) * req.Pagination.Limit,
 	})
 	if err != nil {
 		s.logger.Error("Failed to list orders", zap.Error(err))
-		return nil, fmt.Errorf("failed to list orders: %w", err)
+		return nil, status.Error(codes.Internal, "failed to list orders")
 	}
 
 	var orderList []*orderpb.Order
@@ -185,13 +276,53 @@ func (s *OrderService) ListOrders(ctx context.Context, req *orderpb.ListOrdersRe
 func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderpb.UpdateOrderStatusRequest) (*sharedpb.Empty, error) {
 	s.logger.Info("Updating order status", zap.String("order_id", req.OrderId), zap.String("status", req.Status.String()))
 
-	orderID := pgutil.ToPG(uuid.MustParse(req.OrderId))
+	if req.OrderId == "" {
+		return nil, status.Error(codes.InvalidArgument, "order_id is required")
+	}
+
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+
+	orderIDpg := pgutil.ToPG(orderID)
+
+	// Get current order for state transition validation
+	currentOrder, err := s.queries.GetOrder(ctx, orderIDpg)
+	if err != nil {
+		s.logger.Error("Failed to get current order", zap.Error(err))
+		return nil, status.Error(codes.NotFound, "order not found")
+	}
+
+	currentStatus := orderpb.OrderStatus(currentOrder.Status)
+
+	// Validate state transition
+	if s.stateMachine != nil {
+		if err := s.stateMachine.Transition(req.OrderId, currentStatus, req.Status); err != nil {
+			return nil, err
+		}
+	}
+
 	if err := s.queries.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
-		ID:     orderID,
+		ID:     orderIDpg,
 		Status: int32(req.Status),
 	}); err != nil {
 		s.logger.Error("Failed to update order status", zap.String("order_id", req.OrderId), zap.Error(err))
-		return nil, fmt.Errorf("failed to update order status: %w", err)
+		return nil, status.Error(codes.Internal, "failed to update order status")
+	}
+
+	// Publish status change event
+	if s.eventPublisher != nil {
+		if err := s.eventPublisher.PublishOrderStatusChanged(
+			ctx,
+			req.OrderId,
+			pgutil.FromPG(currentOrder.UserID),
+			currentStatus,
+			req.Status,
+			"",
+		); err != nil {
+			s.logger.Warn("Failed to publish status change event", zap.Error(err))
+		}
 	}
 
 	cacheKey := cache.OrderCacheKey(req.OrderId)
@@ -205,10 +336,44 @@ func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderpb.Updat
 func (s *OrderService) CancelOrder(ctx context.Context, req *orderpb.CancelOrderRequest) (*sharedpb.Empty, error) {
 	s.logger.Info("Cancelling order", zap.String("order_id", req.OrderId))
 
-	return s.UpdateOrderStatus(ctx, &orderpb.UpdateOrderStatusRequest{
-		OrderId: req.OrderId,
-		Status:  orderpb.OrderStatus_ORDER_STATUS_CANCELLED,
-	})
+	orderID := pgutil.ToPG(uuid.MustParse(req.OrderId))
+
+	// Get current order for validation
+	currentOrder, err := s.queries.GetOrder(ctx, orderID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current order: %w", err)
+	}
+
+	currentStatus := orderpb.OrderStatus(currentOrder.Status)
+
+	// Check if order can be cancelled
+	if s.stateMachine != nil && !s.stateMachine.IsCancellable(currentStatus) {
+		return nil, fmt.Errorf("order cannot be cancelled in status: %s", currentStatus)
+	}
+
+	if err := s.queries.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
+		ID:     orderID,
+		Status: int32(orderpb.OrderStatus_ORDER_STATUS_CANCELLED),
+	}); err != nil {
+		s.logger.Error("Failed to cancel order", zap.String("order_id", req.OrderId), zap.Error(err))
+		return nil, fmt.Errorf("failed to cancel order: %w", err)
+	}
+
+	cacheKey := cache.OrderCacheKey(req.OrderId)
+	if err := s.cache.Delete(ctx, cacheKey); err != nil {
+		s.logger.Warn("Failed to invalidate order cache", zap.Error(err))
+	}
+
+	// Publish cancel event
+	if s.eventPublisher != nil {
+		orderProto := s.orderToProto(currentOrder)
+		orderProto.Status = orderpb.OrderStatus_ORDER_STATUS_CANCELLED
+		if err := s.eventPublisher.PublishOrderCancelled(ctx, orderProto, req.Reason); err != nil {
+			s.logger.Warn("Failed to publish cancel event", zap.Error(err))
+		}
+	}
+
+	return &sharedpb.Empty{}, nil
 }
 
 func (s *OrderService) ApplyPoints(ctx context.Context, req *orderpb.ApplyPointsRequest) (*orderpb.ApplyPointsResponse, error) {

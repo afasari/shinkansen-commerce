@@ -27,37 +27,52 @@ const (
 type OrderStatus int32
 
 const (
-	OrderStatus_ORDER_STATUS_UNSPECIFIED OrderStatus = 0
-	OrderStatus_ORDER_STATUS_PENDING     OrderStatus = 1
-	OrderStatus_ORDER_STATUS_CONFIRMED   OrderStatus = 2
-	OrderStatus_ORDER_STATUS_PROCESSING  OrderStatus = 3
-	OrderStatus_ORDER_STATUS_SHIPPED     OrderStatus = 4
-	OrderStatus_ORDER_STATUS_DELIVERED   OrderStatus = 5
-	OrderStatus_ORDER_STATUS_CANCELLED   OrderStatus = 6
-	OrderStatus_ORDER_STATUS_REFUNDED    OrderStatus = 7
+	OrderStatus_ORDER_STATUS_UNSPECIFIED      OrderStatus = 0
+	OrderStatus_ORDER_STATUS_PENDING          OrderStatus = 1
+	OrderStatus_ORDER_STATUS_CONFIRMED        OrderStatus = 2
+	OrderStatus_ORDER_STATUS_PROCESSING       OrderStatus = 3
+	OrderStatus_ORDER_STATUS_SHIPPED          OrderStatus = 4
+	OrderStatus_ORDER_STATUS_IN_TRANSIT       OrderStatus = 5
+	OrderStatus_ORDER_STATUS_DELIVERED        OrderStatus = 6
+	OrderStatus_ORDER_STATUS_CANCELLED        OrderStatus = 7
+	OrderStatus_ORDER_STATUS_EXPIRED          OrderStatus = 8
+	OrderStatus_ORDER_STATUS_READY_FOR_PICKUP OrderStatus = 9
+	OrderStatus_ORDER_STATUS_PICKED_UP        OrderStatus = 10
+	OrderStatus_ORDER_STATUS_FAILED_DELIVERY  OrderStatus = 11
+	OrderStatus_ORDER_STATUS_RETURNED         OrderStatus = 12
 )
 
 // Enum value maps for OrderStatus.
 var (
 	OrderStatus_name = map[int32]string{
-		0: "ORDER_STATUS_UNSPECIFIED",
-		1: "ORDER_STATUS_PENDING",
-		2: "ORDER_STATUS_CONFIRMED",
-		3: "ORDER_STATUS_PROCESSING",
-		4: "ORDER_STATUS_SHIPPED",
-		5: "ORDER_STATUS_DELIVERED",
-		6: "ORDER_STATUS_CANCELLED",
-		7: "ORDER_STATUS_REFUNDED",
+		0:  "ORDER_STATUS_UNSPECIFIED",
+		1:  "ORDER_STATUS_PENDING",
+		2:  "ORDER_STATUS_CONFIRMED",
+		3:  "ORDER_STATUS_PROCESSING",
+		4:  "ORDER_STATUS_SHIPPED",
+		5:  "ORDER_STATUS_IN_TRANSIT",
+		6:  "ORDER_STATUS_DELIVERED",
+		7:  "ORDER_STATUS_CANCELLED",
+		8:  "ORDER_STATUS_EXPIRED",
+		9:  "ORDER_STATUS_READY_FOR_PICKUP",
+		10: "ORDER_STATUS_PICKED_UP",
+		11: "ORDER_STATUS_FAILED_DELIVERY",
+		12: "ORDER_STATUS_RETURNED",
 	}
 	OrderStatus_value = map[string]int32{
-		"ORDER_STATUS_UNSPECIFIED": 0,
-		"ORDER_STATUS_PENDING":     1,
-		"ORDER_STATUS_CONFIRMED":   2,
-		"ORDER_STATUS_PROCESSING":  3,
-		"ORDER_STATUS_SHIPPED":     4,
-		"ORDER_STATUS_DELIVERED":   5,
-		"ORDER_STATUS_CANCELLED":   6,
-		"ORDER_STATUS_REFUNDED":    7,
+		"ORDER_STATUS_UNSPECIFIED":      0,
+		"ORDER_STATUS_PENDING":          1,
+		"ORDER_STATUS_CONFIRMED":        2,
+		"ORDER_STATUS_PROCESSING":       3,
+		"ORDER_STATUS_SHIPPED":          4,
+		"ORDER_STATUS_IN_TRANSIT":       5,
+		"ORDER_STATUS_DELIVERED":        6,
+		"ORDER_STATUS_CANCELLED":        7,
+		"ORDER_STATUS_EXPIRED":          8,
+		"ORDER_STATUS_READY_FOR_PICKUP": 9,
+		"ORDER_STATUS_PICKED_UP":        10,
+		"ORDER_STATUS_FAILED_DELIVERY":  11,
+		"ORDER_STATUS_RETURNED":         12,
 	}
 )
 
@@ -905,6 +920,7 @@ type UpdateOrderStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
 	Status        OrderStatus            `protobuf:"varint,2,opt,name=status,proto3,enum=shinkansen.order.OrderStatus" json:"status,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -951,6 +967,13 @@ func (x *UpdateOrderStatusRequest) GetStatus() OrderStatus {
 		return x.Status
 	}
 	return OrderStatus_ORDER_STATUS_UNSPECIFIED
+}
+
+func (x *UpdateOrderStatusRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
 }
 
 type CancelOrderRequest struct {
@@ -1205,6 +1228,58 @@ func (x *ReserveDeliverySlotResponse) GetReservationId() string {
 	return ""
 }
 
+type CartSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ItemCount     int32                  `protobuf:"varint,1,opt,name=item_count,json=itemCount,proto3" json:"item_count,omitempty"`
+	Subtotal      *shared.Money          `protobuf:"bytes,2,opt,name=subtotal,proto3" json:"subtotal,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CartSummary) Reset() {
+	*x = CartSummary{}
+	mi := &file_order_order_messages_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CartSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CartSummary) ProtoMessage() {}
+
+func (x *CartSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_order_order_messages_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CartSummary.ProtoReflect.Descriptor instead.
+func (*CartSummary) Descriptor() ([]byte, []int) {
+	return file_order_order_messages_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *CartSummary) GetItemCount() int32 {
+	if x != nil {
+		return x.ItemCount
+	}
+	return 0
+}
+
+func (x *CartSummary) GetSubtotal() *shared.Money {
+	if x != nil {
+		return x.Subtotal
+	}
+	return nil
+}
+
 var File_order_order_messages_proto protoreflect.FileDescriptor
 
 const file_order_order_messages_proto_rawDesc = "" +
@@ -1285,10 +1360,11 @@ const file_order_order_messages_proto_rawDesc = "" +
 	"\x06orders\x18\x01 \x03(\v2\x17.shinkansen.order.OrderR\x06orders\x12=\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2\x1d.shinkansen.common.PaginationR\n" +
-	"pagination\"l\n" +
+	"pagination\"\x84\x01\n" +
 	"\x18UpdateOrderStatusRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x125\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x1d.shinkansen.order.OrderStatusR\x06status\"G\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x1d.shinkansen.order.OrderStatusR\x06status\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"G\n" +
 	"\x12CancelOrderRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"G\n" +
@@ -1302,16 +1378,26 @@ const file_order_order_messages_proto_rawDesc = "" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x17\n" +
 	"\aslot_id\x18\x02 \x01(\tR\x06slotId\"D\n" +
 	"\x1bReserveDeliverySlotResponse\x12%\n" +
-	"\x0ereservation_id\x18\x01 \x01(\tR\rreservationId*\xeb\x01\n" +
+	"\x0ereservation_id\x18\x01 \x01(\tR\rreservationId\"b\n" +
+	"\vCartSummary\x12\x1d\n" +
+	"\n" +
+	"item_count\x18\x01 \x01(\x05R\titemCount\x124\n" +
+	"\bsubtotal\x18\x02 \x01(\v2\x18.shinkansen.common.MoneyR\bsubtotal*\x83\x03\n" +
 	"\vOrderStatus\x12\x1c\n" +
 	"\x18ORDER_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ORDER_STATUS_PENDING\x10\x01\x12\x1a\n" +
 	"\x16ORDER_STATUS_CONFIRMED\x10\x02\x12\x1b\n" +
 	"\x17ORDER_STATUS_PROCESSING\x10\x03\x12\x18\n" +
-	"\x14ORDER_STATUS_SHIPPED\x10\x04\x12\x1a\n" +
-	"\x16ORDER_STATUS_DELIVERED\x10\x05\x12\x1a\n" +
-	"\x16ORDER_STATUS_CANCELLED\x10\x06\x12\x19\n" +
-	"\x15ORDER_STATUS_REFUNDED\x10\a*\xfc\x01\n" +
+	"\x14ORDER_STATUS_SHIPPED\x10\x04\x12\x1b\n" +
+	"\x17ORDER_STATUS_IN_TRANSIT\x10\x05\x12\x1a\n" +
+	"\x16ORDER_STATUS_DELIVERED\x10\x06\x12\x1a\n" +
+	"\x16ORDER_STATUS_CANCELLED\x10\a\x12\x18\n" +
+	"\x14ORDER_STATUS_EXPIRED\x10\b\x12!\n" +
+	"\x1dORDER_STATUS_READY_FOR_PICKUP\x10\t\x12\x1a\n" +
+	"\x16ORDER_STATUS_PICKED_UP\x10\n" +
+	"\x12 \n" +
+	"\x1cORDER_STATUS_FAILED_DELIVERY\x10\v\x12\x19\n" +
+	"\x15ORDER_STATUS_RETURNED\x10\f*\xfc\x01\n" +
 	"\rPaymentMethod\x12\x1e\n" +
 	"\x1aPAYMENT_METHOD_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aPAYMENT_METHOD_CREDIT_CARD\x10\x01\x12&\n" +
@@ -1334,7 +1420,7 @@ func file_order_order_messages_proto_rawDescGZIP() []byte {
 }
 
 var file_order_order_messages_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_order_order_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_order_order_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_order_order_messages_proto_goTypes = []any{
 	(OrderStatus)(0),                    // 0: shinkansen.order.OrderStatus
 	(PaymentMethod)(0),                  // 1: shinkansen.order.PaymentMethod
@@ -1354,45 +1440,47 @@ var file_order_order_messages_proto_goTypes = []any{
 	(*ApplyPointsResponse)(nil),         // 15: shinkansen.order.ApplyPointsResponse
 	(*ReserveDeliverySlotRequest)(nil),  // 16: shinkansen.order.ReserveDeliverySlotRequest
 	(*ReserveDeliverySlotResponse)(nil), // 17: shinkansen.order.ReserveDeliverySlotResponse
-	(*shared.Money)(nil),                // 18: shinkansen.common.Money
-	(*timestamppb.Timestamp)(nil),       // 19: google.protobuf.Timestamp
-	(*wrapperspb.StringValue)(nil),      // 20: google.protobuf.StringValue
-	(*wrapperspb.Int64Value)(nil),       // 21: google.protobuf.Int64Value
-	(*shared.Pagination)(nil),           // 22: shinkansen.common.Pagination
+	(*CartSummary)(nil),                 // 18: shinkansen.order.CartSummary
+	(*shared.Money)(nil),                // 19: shinkansen.common.Money
+	(*timestamppb.Timestamp)(nil),       // 20: google.protobuf.Timestamp
+	(*wrapperspb.StringValue)(nil),      // 21: google.protobuf.StringValue
+	(*wrapperspb.Int64Value)(nil),       // 22: google.protobuf.Int64Value
+	(*shared.Pagination)(nil),           // 23: shinkansen.common.Pagination
 }
 var file_order_order_messages_proto_depIdxs = []int32{
 	0,  // 0: shinkansen.order.Order.status:type_name -> shinkansen.order.OrderStatus
-	18, // 1: shinkansen.order.Order.subtotal_amount:type_name -> shinkansen.common.Money
-	18, // 2: shinkansen.order.Order.tax_amount:type_name -> shinkansen.common.Money
-	18, // 3: shinkansen.order.Order.discount_amount:type_name -> shinkansen.common.Money
-	18, // 4: shinkansen.order.Order.total_amount:type_name -> shinkansen.common.Money
+	19, // 1: shinkansen.order.Order.subtotal_amount:type_name -> shinkansen.common.Money
+	19, // 2: shinkansen.order.Order.tax_amount:type_name -> shinkansen.common.Money
+	19, // 3: shinkansen.order.Order.discount_amount:type_name -> shinkansen.common.Money
+	19, // 4: shinkansen.order.Order.total_amount:type_name -> shinkansen.common.Money
 	4,  // 5: shinkansen.order.Order.shipping_address:type_name -> shinkansen.order.ShippingAddress
 	1,  // 6: shinkansen.order.Order.payment_method:type_name -> shinkansen.order.PaymentMethod
-	19, // 7: shinkansen.order.Order.created_at:type_name -> google.protobuf.Timestamp
-	19, // 8: shinkansen.order.Order.updated_at:type_name -> google.protobuf.Timestamp
-	20, // 9: shinkansen.order.Order.delivery_slot_id:type_name -> google.protobuf.StringValue
-	19, // 10: shinkansen.order.Order.estimated_delivery_at:type_name -> google.protobuf.Timestamp
+	20, // 7: shinkansen.order.Order.created_at:type_name -> google.protobuf.Timestamp
+	20, // 8: shinkansen.order.Order.updated_at:type_name -> google.protobuf.Timestamp
+	21, // 9: shinkansen.order.Order.delivery_slot_id:type_name -> google.protobuf.StringValue
+	20, // 10: shinkansen.order.Order.estimated_delivery_at:type_name -> google.protobuf.Timestamp
 	3,  // 11: shinkansen.order.Order.items:type_name -> shinkansen.order.OrderItem
-	18, // 12: shinkansen.order.OrderItem.unit_price:type_name -> shinkansen.common.Money
-	18, // 13: shinkansen.order.OrderItem.total_price:type_name -> shinkansen.common.Money
+	19, // 12: shinkansen.order.OrderItem.unit_price:type_name -> shinkansen.common.Money
+	19, // 13: shinkansen.order.OrderItem.total_price:type_name -> shinkansen.common.Money
 	6,  // 14: shinkansen.order.CreateOrderRequest.items:type_name -> shinkansen.order.CreateOrderItem
 	4,  // 15: shinkansen.order.CreateOrderRequest.shipping_address:type_name -> shinkansen.order.ShippingAddress
 	1,  // 16: shinkansen.order.CreateOrderRequest.payment_method:type_name -> shinkansen.order.PaymentMethod
-	21, // 17: shinkansen.order.CreateOrderRequest.points_to_apply:type_name -> google.protobuf.Int64Value
-	20, // 18: shinkansen.order.CreateOrderRequest.delivery_slot_id:type_name -> google.protobuf.StringValue
+	22, // 17: shinkansen.order.CreateOrderRequest.points_to_apply:type_name -> google.protobuf.Int64Value
+	21, // 18: shinkansen.order.CreateOrderRequest.delivery_slot_id:type_name -> google.protobuf.StringValue
 	0,  // 19: shinkansen.order.CreateOrderResponse.status:type_name -> shinkansen.order.OrderStatus
 	2,  // 20: shinkansen.order.GetOrderResponse.order:type_name -> shinkansen.order.Order
-	20, // 21: shinkansen.order.ListOrdersRequest.status:type_name -> google.protobuf.StringValue
-	22, // 22: shinkansen.order.ListOrdersRequest.pagination:type_name -> shinkansen.common.Pagination
+	21, // 21: shinkansen.order.ListOrdersRequest.status:type_name -> google.protobuf.StringValue
+	23, // 22: shinkansen.order.ListOrdersRequest.pagination:type_name -> shinkansen.common.Pagination
 	2,  // 23: shinkansen.order.ListOrdersResponse.orders:type_name -> shinkansen.order.Order
-	22, // 24: shinkansen.order.ListOrdersResponse.pagination:type_name -> shinkansen.common.Pagination
+	23, // 24: shinkansen.order.ListOrdersResponse.pagination:type_name -> shinkansen.common.Pagination
 	0,  // 25: shinkansen.order.UpdateOrderStatusRequest.status:type_name -> shinkansen.order.OrderStatus
-	18, // 26: shinkansen.order.ApplyPointsResponse.yen_value:type_name -> shinkansen.common.Money
-	27, // [27:27] is the sub-list for method output_type
-	27, // [27:27] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	19, // 26: shinkansen.order.ApplyPointsResponse.yen_value:type_name -> shinkansen.common.Money
+	19, // 27: shinkansen.order.CartSummary.subtotal:type_name -> shinkansen.common.Money
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_order_order_messages_proto_init() }
@@ -1406,7 +1494,7 @@ func file_order_order_messages_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_order_order_messages_proto_rawDesc), len(file_order_order_messages_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
