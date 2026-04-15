@@ -1,148 +1,136 @@
 # AGENTS.md
 
-This file provides guidance for agentic coding agents working in this repository.
+## Build / Test / Lint Commands
 
-## Essential Commands
-
-### Build Commands
-- `make build-all` - Build all Go services to `bin/`
-- `make build-gateway` / `build-product` / `build-order` / `build-user` / `build-payment` / `build-delivery` - Build individual services
-- `make build-inventory` - Build Rust inventory service (cargo build --release)
-
-### Test Commands
-- `make test` - Run all tests across all services
-- `cd services/<service> && go test ./...` - Run tests for a single service
-- `cd services/<service> && go test ./... -run TestFunctionName` - Run a specific test
-- `make test-coverage` - Run tests with coverage reports
-- `make test-integration` - Run integration tests (requires `make up` first)
-- `cd services/inventory-service && cargo test` - Run Rust tests
-
-### Lint Commands
-- `make lint` - Run all linters (golangci-lint, clippy, ruff)
-- `cd services/<service> && golangci-lint run` - Lint a single Go service
-- `cd services/analytics-worker && uv run ruff check .` - Lint Python code
-- `cd services/inventory-service && cargo clippy` - Lint Rust code
-
-### Code Generation
-- `make gen` - Generate all code (protobuf + sqlc + openapi + docs)
-- `make proto-gen` - Generate Go gRPC code from `.proto` files in `proto/`
-- `make sqlc-gen` - Generate Go database code from `.sql` queries in `internal/queries/`
-- **CRITICAL**: Always run `make sqlc-gen` after modifying SQL queries
-
-### Database Commands
-- `make db-migrate` - Run migrations for all services
-- `cd services/<service> && migrate -path internal/migrations -database "$DATABASE_URL" up` - Migrate single service
-- `make db-rollback` - Rollback last migration per service
-
-## Code Style Guidelines
-
-### Import Organization
-```go
-// Standard library
-import (
-    "context"
-    "fmt"
-)
-
-// External dependencies (alphabetical)
-import (
-    "github.com/google/uuid"
-    "go.uber.org/zap"
-)
-
-// Internal dependencies (alphabetical)
-import (
-    "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
-    "github.com/afasari/shinkansen-commerce/services/product-service/internal/cache"
-)
+```bash
+make build-all          # Build all Go services to bin/
+make build-inventory    # Build Rust inventory service (cargo build --release)
+make test               # Run all tests (Go + Rust with --test-threads=1)
+make lint               # Run golangci-lint, cargo clippy, ruff check + format check
+make gen                # Regenerate all code (proto → Go, proto → Rust, sqlc, OpenAPI docs)
 ```
 
-### Naming Conventions
-- **Functions**: PascalCase for exported, camelCase for private
-- **Variables/Parameters**: camelCase
-- **Structs/Interfaces**: PascalCase
-- **Constants**: PascalCase or UPPER_CASE
-- **Files**: lowercase for Go (e.g., `service.go`, `repository.go`)
-- **SQL files**: snake_case (e.g., `create_product.sql`, `search_products_fuzzy.sql`)
-- **Proto files**: snake_case (e.g., `product_service.proto`, `order_messages.proto`)
-
-### Error Handling
-- Always wrap errors with context: `return fmt.Errorf("failed to create product: %w", err)`
-- Use structured logging with zap for errors:
-  ```go
-  if err != nil {
-      s.logger.Error("Failed to create product", zap.String("id", id), zap.Error(err))
-      return nil, fmt.Errorf("failed to create product: %w", err)
-  }
-  ```
-
-### Testing Patterns
-- Use table-driven tests with `t.Run()` for multiple test cases
-- Use `github.com/stretchr/testify/assert` and `require`
-- For cache/integration tests, use `github.com/alicebob/miniredis/v2` for Redis mocking
-- Test file naming: `*_test.go` in the same package
-
-### Service Structure
-Follow this layered architecture for Go services:
+Single service:
+```bash
+cd services/<service> && go test ./...
+cd services/<service> && go test ./... -run TestFunctionName
+cd services/<service> && golangci-lint run
+cd services/inventory-service && cargo test -- --test-threads=1
+cd services/analytics-worker && uv run pytest
 ```
-services/<service>/
-├── cmd/<service>/main.go          # Entry point
+
+Verification order before committing: `make gen` → `make build-all` → `make lint` → `make test`
+
+Note: `make up` (docker compose up) runs `make gen` first as a prerequisite.
+
+## Architecture
+
+Spec-first polyglot microservices monorepo. Proto files in `proto/` are the source of truth.
+
+| Service | Language | gRPC Port | Metrics Port |
+|---------|----------|-----------|--------------|
+| gateway | Go | — | 8080 (HTTP) |
+| product-service | Go | 9091 | 8091 |
+| order-service | Go | 9092 | 8092 |
+| user-service | Go | 9103 | 8103 |
+| payment-service | Go | 9104 | 8104 |
+| inventory-service | Rust | 9105 | 8105 |
+| delivery-service | Go | 9106 | 8106 |
+| analytics-worker | Python | — | — |
+
+Go 1.24 workspace mode (`go.work`). Each Go service has its own `go.mod`. Services import generated proto code via `github.com/afasari/shinkansen-commerce/gen/proto/go/<service>`.
+
+Internal communication: gRPC. External: REST via Gateway (port 8080). Events: Kafka. Data: PostgreSQL + Redis.
+
+## Code Generation (CRITICAL)
+
+### Proto changes
+1. Edit `.proto` in `proto/<service>/`
+2. `make proto-gen` → generates Go gRPC code to `gen/proto/go/`
+3. `make proto-gen-rust` → generates Rust proto code to `gen/proto/rust/`
+4. `make proto-openapi-gen` → generates OpenAPI docs to `services/gateway/docs/api/`
+
+### SQL changes (Go services only)
+1. Add/edit `.sql` files in `services/<service>/internal/queries/` with `-- name: FunctionName :mode` annotation
+2. `make sqlc-gen` → generates typed Go code to `services/<service>/internal/db/`
+
+**`make sqlc-gen` only processes product-service and order-service.** Payment, user, and delivery services have their sqlc steps commented out in the Makefile.
+
+**NEVER edit generated code** (files with `// Code generated by ... DO NOT EDIT.` header). The `gen/` directory and `internal/db/` directories are generated.
+
+## Service Layout
+
+Go services follow: handler → service → repository → db (sqlc) → PostgreSQL
+
+```
+services/<go-service>/
+├── cmd/<service>/main.go
 ├── internal/
-│   ├── handler/                    # gRPC/HTTP handlers (if applicable)
-│   ├── service/                    # Business logic layer
-│   ├── repository/                 # Data access abstraction (if needed)
-│   ├── db/                         # sqlc-generated code (DO NOT EDIT)
-│   ├── queries/                    # SQL queries for sqlc
-│   ├── cache/                      # Redis caching layer
-│   └── config/                     # Configuration loading
+│   ├── handler/         # gRPC handlers
+│   ├── service/         # Business logic
+│   ├── repository/      # Data access
+│   ├── db/              # sqlc-generated (DO NOT EDIT)
+│   ├── queries/         # SQL queries for sqlc
+│   ├── migrations/      # Database migrations (XXXXXXX_description.{up,down}.sql)
+│   ├── cache/           # Redis caching
+│   ├── config/          # Env-based config loading
+│   └── pkg/             # Internal utilities
+├── sqlc.yaml
+└── go.mod
 ```
 
-Pattern: handler → service → repository → db (sqlc) → PostgreSQL
+Rust service (inventory-service): `src/main.rs` → `service.rs` → `repository.rs` (sqlx with compile-time checked macros). Uses `prost` via `build.rs` for proto codegen. Migrations are at `services/inventory-service/migrations/` (root, not internal/) — single SQL files, not up/down pairs.
 
-### Type Conversions
-- Use utility functions for PostgreSQL UUID conversions:
-  ```go
-  productID := pgutil.ToPG(uuid.MustParse(req.ProductId))
-  // ...
-  ProductId: pgutil.FromPG(productID)
-  ```
-- For timestamps: `timestamppb.New()` and `.AsTime()`
+Python service (analytics-worker): `uv`-managed, entry point `analytics_worker/cli.py`.
 
-### Configuration
-- Load config via environment variables with defaults
-- Use pattern: `getEnv("KEY", "default_value")` in `config/config.go`
+## Database
 
-## Important Practices
+Each service owns a PostgreSQL schema (e.g., `catalog`, `orders`, `users`, `payments`, `inventory`, `delivery`). Single database `shinkansen`.
 
-### Code Generation Rules
-- **NEVER edit generated code**: Files with `// Code generated by ... DO NOT EDIT.` header
-- Regenerate protobuf code after modifying `.proto` files: `make proto-gen`
-- Regenerate SQL code after modifying `.sql` queries: `make sqlc-gen`
-- Proto files in `proto/` are the source of truth
+```bash
+make db-migrate                          # All services
+make db-rollback                         # Rollback last migration per service
+cd services/<service> && migrate -path internal/migrations -database "$DATABASE_URL" up
+```
 
-### SQL Query Guidelines
-- Write queries in `internal/queries/` with `-- name: FunctionName :mode` annotation
-- Use `sqlc.narg()` for nullable parameters
-- Run `make sqlc-gen` after any query changes
-- Schema changes go in `internal/migrations/` with naming: `XXXXXX_description.{up,down}.sql`
+Default local DATABASE_URL: `postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen?sslmode=disable`
 
-### Before Committing
-1. Run `make build-all` to verify compilation
-2. Run `make lint` to check code quality
-3. Run `make test` to verify all tests pass
-4. Check generated code is up to date: `make gen`
+## Go Conventions
 
-### Service Communication
-- Internal: Use gRPC (generated protobuf clients)
-- External: Use REST via Gateway (port 8080)
-- Gateway handles auth, rate limiting, gRPC↔REST translation
+- Import groups: stdlib → external (alpha) → internal (alpha)
+- Error wrapping: `fmt.Errorf("failed to X: %w", err)`
+- Structured logging: `go.uber.org/zap`
+- Testing: table-driven with `t.Run()`, `github.com/stretchr/testify/assert` + `require`
+- Redis mocking in tests: `github.com/alicebob/miniredis/v2`
+- Config via env vars with defaults using `getEnv()` in `internal/config/config.go`
+- UUID conversion: use `pgutil.ToPG()` / `pgutil.FromPG()` for PostgreSQL UUID columns
+- sqlc driver: `pgx/v5`
 
-### Database Design
-- Each service has its own schema (logical separation in PostgreSQL)
-- Use `sqlc` for type-safe SQL queries - avoid raw SQL strings
-- Migrations are managed per service in `internal/migrations/`
+## Python Conventions (analytics-worker)
 
-### Logging
-- Use `go.uber.org/zap` for structured logging
-- Levels: Debug, Info, Warn, Error, Fatal
-- Include relevant context: zap.String("id", id), zap.Error(err)
+```bash
+cd services/analytics-worker && uv sync        # Install deps
+cd services/analytics-worker && uv run pytest   # Run tests
+cd services/analytics-worker && uv run ruff check . && uv run ruff format --check .  # Lint
+cd services/analytics-worker && uv run ruff format .   # Format
+```
+
+## Rust Conventions (inventory-service)
+
+```bash
+cd services/inventory-service && cargo test -- --test-threads=1   # Tests must be single-threaded
+cd services/inventory-service && cargo clippy                      # Lint
+cd services/inventory-service && cargo fmt --all -- --check        # Format check
+```
+
+## Infrastructure
+
+`docker-compose.yml` starts PostgreSQL 15, Redis 7, and all services. No Kafka/MinIO/Jaeger/Prometheus/Grafana in the compose file (despite README mentioning them).
+
+Observability endpoints:
+- Grafana: `http://localhost:3000` (admin/admin) — if deployed separately
+- Jaeger: `http://localhost:16686` — if deployed separately
+
+## CI
+
+`.github/workflows/ci-cd.yml` — Only the **lint** job is active. Test and build jobs are commented out. CI runs: `make proto-gen` → `make sqlc-gen` → `make lint` → proto format check. Go 1.24, golangci-lint v2.9.0.

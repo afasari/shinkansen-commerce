@@ -23,14 +23,14 @@ This is a **spec-first polyglot microservices monorepo** for a Japanese e-commer
 
 - **External**: REST via Gateway (port 8080)
 - **Internal**: gRPC between services
-- **Events**: Kafka (configure in docker-compose.yml)
+- **Events**: Kafka (not in docker-compose.yml - would need to be added)
 - **Data**: PostgreSQL 15 + Redis 7 caching
 
 ## Essential Commands
 
 ```bash
 # Infrastructure (Docker Compose)
-make up              # Start postgres, redis, kafka, minio, jaeger, prometheus, grafana
+make up              # Start postgres, redis, and all microservices (runs make gen first)
 make down            # Stop all infrastructure
 
 # Code Generation (CRITICAL: run after proto changes)
@@ -44,8 +44,10 @@ make build           # Build all services to bin/
 make build-<service> # Build specific service (e.g., build-product)
 
 # Testing
-make test            # Run all Go tests
-cd services/<service> && go test ./...  # Test specific service
+make test            # Run all Go and Rust tests
+cd services/<service> && go test ./...  # Test specific Go service
+cd services/<service> && go test ./... -run TestFunctionName  # Run specific test
+cd services/inventory-service && cargo test -- --test-threads=1  # Rust tests (single-threaded required)
 make test-coverage   # Tests with coverage
 
 # Linting
@@ -130,19 +132,24 @@ Uses `uv` for fast Python package management.
 2. Run `make sqlc-gen` → generates typed Go code in `internal/db/`
 3. Use generated interface in repository layer
 
+**IMPORTANT**: `make sqlc-gen` only processes **product-service** and **order-service**. Other services have sqlc steps commented out in the Makefile.
+
 ### Database Migrations
 
-Each Go service has its own migrations in `internal/migrations/`. The Rust inventory-service uses migrations in its root `migrations/` directory.
+Each service owns a PostgreSQL schema (e.g., `catalog`, `orders`, `users`, `payments`, `inventory`, `delivery`) in a single `shinkansen` database.
+
+**Go services**: Migrations in `internal/migrations/` with up/down pairs: `XXXXXXX_description.{up,down}.sql`
+**Rust inventory-service**: Migrations in `migrations/` (root level) with single SQL files (not up/down pairs)
 
 ```bash
-# Migration files follow naming: XXXXXXX_description.{up,down}.sql
-cd services/<service>
-make db-migrate   # or: migrate -path internal/migrations -database "$DATABASE_URL" up
+make db-migrate                          # All services
+make db-rollback                         # Rollback last migration per service
+cd services/<service> && migrate -path internal/migrations -database "$DATABASE_URL" up
 ```
 
 ## Go Workspace
 
-This uses Go 1.24+ workspace mode (`go.work`). Services reference generated proto code via:
+This uses Go 1.24+ workspace mode (`go.work`). The workspace includes: all Go services (gateway, product-service, order-service, payment-service, user-service, delivery-service) plus services/shared/go. Services reference generated proto code via:
 
 ```go
 import "github.com/afasari/shinkansen-commerce/gen/proto/go/<service>"
@@ -154,7 +161,11 @@ The workspace is defined in `go.work` at the repository root.
 
 ### Local Development
 
-`docker-compose.yml` starts all dependencies and services. Database URLs default to `postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable`.
+`docker-compose.yml` starts PostgreSQL 15, Redis 7, and all microservices. **Note**: Kafka, MinIO, Jaeger, Prometheus, and Grafana are NOT included in docker-compose.yml (despite being mentioned in README.md).
+
+Database URLs default to `postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable`.
+
+`make up` runs `make gen` as a prerequisite before starting docker compose.
 
 ### Service Ports
 
@@ -170,9 +181,9 @@ The workspace is defined in `go.work` at the repository root.
 
 ### Observability
 
-- Grafana: `http://localhost:3000` (admin/admin)
-- Jaeger tracing: `http://localhost:16686`
-- Prometheus metrics: exposed on each service's METRICS_PORT
+- **Grafana**: `http://localhost:3000` (admin/admin) — not in docker-compose.yml
+- **Jaeger tracing**: `http://localhost:16686` — not in docker-compose.yml
+- **Prometheus metrics**: Exposed on each service's METRICS_PORT (8091-8106)
 
 ## Japan-Specific Features
 
@@ -193,3 +204,41 @@ The workspace is defined in `go.work` at the repository root.
 - **Proto is source of truth**: Always edit `.proto` files, regenerate code
 - **sqlc requires valid SQL**: Queries in `internal/queries/` must be valid PostgreSQL
 - **Rust build**: `inventory-service` has a `build.rs` that compiles protoc via prost
+
+## Go Conventions
+
+- **Import groups**: stdlib → external (alphabetical) → internal (alphabetical)
+- **Error wrapping**: `fmt.Errorf("failed to X: %w", err)`
+- **Structured logging**: `go.uber.org/zap`
+- **Testing**: Table-driven with `t.Run()`, using `github.com/stretchr/testify/assert` + `require`
+- **Redis mocking in tests**: `github.com/alicebob/miniredis/v2`
+- **Config via env vars** with defaults using `getEnv()` in `internal/config/config.go`
+- **UUID conversion**: Use `pgutil.ToPG()` / `pgutil.FromPG()` for PostgreSQL UUID columns
+- **sqlc driver**: `pgx/v5`
+
+## Rust Conventions (inventory-service)
+
+- Tests must run single-threaded: `cargo test -- --test-threads=1`
+- Uses `sqlx` with compile-time checked queries (macros)
+- Migrations are single SQL files in `migrations/` (not up/down pairs like Go services)
+
+## Python Conventions (analytics-worker)
+
+```bash
+cd services/analytics-worker && uv sync        # Install deps
+cd services/analytics-worker && uv run pytest   # Run tests
+cd services/analytics-worker && uv run ruff check . && uv run ruff format --check .  # Lint
+cd services/analytics-worker && uv run ruff format .   # Format
+```
+
+## Verification Workflow
+
+Before committing changes, run in order:
+1. `make gen` — Regenerate all code after proto changes
+2. `make build-all` — Ensure all services build
+3. `make lint` — Run linters (Go: golangci-lint, Rust: clippy, Python: ruff)
+4. `make test` — Run all tests
+
+## CI/CD
+
+`.github/workflows/ci-cd.yml`: Only the **lint** job is active. Test and build jobs are commented out. CI runs: `make proto-gen` → `make sqlc-gen` → `make lint` → proto format check. Go 1.24, golangci-lint v2.9.0.
