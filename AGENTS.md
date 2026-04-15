@@ -23,6 +23,11 @@ Verification order before committing: `make gen` → `make build-all` → `make 
 
 Note: `make up` (docker compose up) runs `make gen` first as a prerequisite.
 
+```bash
+make test-integration    # Run integration tests (starts docker-compose, waits for health, runs gateway E2E)
+make install-git-hooks   # Install pre-commit hook that auto-runs codegen when .proto files are staged
+```
+
 ## Architecture
 
 Spec-first polyglot microservices monorepo. Proto files in `proto/` are the source of truth.
@@ -79,7 +84,9 @@ services/<go-service>/
 └── go.mod
 ```
 
-Rust service (inventory-service): `src/main.rs` → `service.rs` → `repository.rs` (sqlx with compile-time checked macros). Uses `prost` via `build.rs` for proto codegen. Migrations are at `services/inventory-service/migrations/` (root, not internal/) — single SQL files, not up/down pairs.
+Gateway is different — no DB/sqlc layer. Structure: `cmd/` → `internal/handler/` + `internal/client/` + `internal/middleware/` + `internal/cache/`. It proxies REST↔gRPC rather than owning data.
+
+Rust service (inventory-service): `src/main.rs` → `service.rs` → `repository.rs` (sqlx with compile-time checked macros). Proto codegen lives in `gen/proto/rust/build.rs` (a separate Cargo crate `shinkansen-proto`); the inventory-service's own `build.rs` is a 3-line stub that just triggers reruns. Migrations are at `services/inventory-service/migrations/` (root, not internal/) — single SQL files, not up/down pairs.
 
 Python service (analytics-worker): `uv`-managed, entry point `analytics_worker/cli.py`.
 
@@ -95,6 +102,14 @@ cd services/<service> && migrate -path internal/migrations -database "$DATABASE_
 
 Default local DATABASE_URL: `postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen?sslmode=disable`
 
+## Integration Tests
+
+Integration tests live at `services/<service>/test/integration/` (outside `internal/`). Run via:
+
+```bash
+make test-integration    # Calls scripts/run-integration-tests.sh (starts docker-compose, waits for health, runs gateway E2E)
+```
+
 ## Go Conventions
 
 - Import groups: stdlib → external (alpha) → internal (alpha)
@@ -103,7 +118,7 @@ Default local DATABASE_URL: `postgres://shinkansen:shinkansen_dev_password@local
 - Testing: table-driven with `t.Run()`, `github.com/stretchr/testify/assert` + `require`
 - Redis mocking in tests: `github.com/alicebob/miniredis/v2`
 - Config via env vars with defaults using `getEnv()` in `internal/config/config.go`
-- UUID conversion: use `pgutil.ToPG()` / `pgutil.FromPG()` for PostgreSQL UUID columns
+- UUID conversion: use `pgutil.ToPG()` / `pgutil.FromPG()` — copy-pasted per-service at `internal/pkg/pgutil/uuid.go` (not a shared import)
 - sqlc driver: `pgx/v5`
 
 ## Python Conventions (analytics-worker)
@@ -126,6 +141,10 @@ cd services/inventory-service && cargo fmt --all -- --check        # Format chec
 ## Infrastructure
 
 `docker-compose.yml` starts PostgreSQL 15, Redis 7, and all services. No Kafka/MinIO/Jaeger/Prometheus/Grafana in the compose file (despite README mentioning them).
+
+`deploy/k8s/base/k8s.yaml` has real Deployment, Service, ConfigMap, Secret, and HPA manifests for production use. `deploy/terraform/` and `deploy/docker/` are empty.
+
+**Warning:** `deploy/prometheus/prometheus.yml` has stale/incorrect scrape ports for every service — do not trust it as a source of truth for metrics endpoints.
 
 Observability endpoints:
 - Grafana: `http://localhost:3000` (admin/admin) — if deployed separately
