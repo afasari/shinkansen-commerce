@@ -14,6 +14,7 @@ type User struct {
 	Name         string
 	Phone        string
 	Active       bool
+	Role         string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -112,8 +113,8 @@ func NewQueries(db *DB) *Queries {
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
 	const sql = `
-		INSERT INTO users.users (email, password_hash, name, phone)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO users.users (email, password_hash, name, phone, role)
+		VALUES ($1, $2, $3, $4, 'customer')
 		RETURNING id
 	`
 	row := q.db.pool.QueryRow(ctx, sql, arg.Email, arg.PasswordHash, arg.Name, arg.Phone)
@@ -124,25 +125,25 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 	const sql = `
-		SELECT id, email, password_hash, name, phone, active, created_at, updated_at
+		SELECT id, email, password_hash, name, phone, active, role, created_at, updated_at
 		FROM users.users
 		WHERE id = $1
 	`
 	row := q.db.pool.QueryRow(ctx, sql, id)
 	var u User
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Phone, &u.Active, &u.CreatedAt, &u.UpdatedAt)
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Phone, &u.Active, &u.Role, &u.CreatedAt, &u.UpdatedAt)
 	return u, err
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	const sql = `
-		SELECT id, email, password_hash, name, phone, active, created_at, updated_at
+		SELECT id, email, password_hash, name, phone, active, role, created_at, updated_at
 		FROM users.users
 		WHERE email = $1
 	`
 	row := q.db.pool.QueryRow(ctx, sql, email)
 	var u User
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Phone, &u.Active, &u.CreatedAt, &u.UpdatedAt)
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Phone, &u.Active, &u.Role, &u.CreatedAt, &u.UpdatedAt)
 	return u, err
 }
 

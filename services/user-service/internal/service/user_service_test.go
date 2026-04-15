@@ -87,8 +87,8 @@ func newTestService(t *testing.T) (*UserService, string) {
 	logger := zap.NewNop()
 	jwtSecret := "test-secret-key-for-jwt-signing"
 	cfg := &config.Config{
-		JWTSecret:           jwtSecret,
-		AccessTokenDuration: 15,
+		JWTSecret:            jwtSecret,
+		AccessTokenDuration:  15,
 		RefreshTokenDuration: 10080, // 7 days
 	}
 	mockQueries := new(MockQuerier)
@@ -538,7 +538,7 @@ func TestUserService_generateAccessToken(t *testing.T) {
 	userID := uuid.New()
 
 	t.Run("access token generation", func(t *testing.T) {
-		token, err := service.generateAccessToken(userID, "test@example.com")
+		token, err := service.generateAccessToken(userID, "test@example.com", "customer")
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
@@ -555,6 +555,7 @@ func TestUserService_generateAccessToken(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, userID.String(), claims["user_id"])
 		assert.Equal(t, "test@example.com", claims["email"])
+		assert.Equal(t, "customer", claims["role"])
 		assert.Equal(t, "shinkansen", claims["jti"])
 	})
 }

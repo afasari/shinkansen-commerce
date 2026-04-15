@@ -70,7 +70,7 @@ func (s *UserService) RegisterUser(ctx context.Context, req *userpb.RegisterUser
 		return nil, status.Error(codes.Internal, "failed to create user")
 	}
 
-	accessToken, err := s.generateAccessToken(userID, req.Email)
+	accessToken, err := s.generateAccessToken(userID, req.Email, "customer")
 	if err != nil {
 		s.logger.Error("Failed to generate access token", zap.Error(err))
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
@@ -86,6 +86,7 @@ func (s *UserService) RegisterUser(ctx context.Context, req *userpb.RegisterUser
 		UserId:       userID.String(),
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		Role:         roleToProto("customer"),
 	}, nil
 }
 
@@ -107,7 +108,7 @@ func (s *UserService) LoginUser(ctx context.Context, req *userpb.LoginUserReques
 		return nil, status.Error(codes.PermissionDenied, "user is inactive")
 	}
 
-	accessToken, err := s.generateAccessToken(user.ID, user.Email)
+	accessToken, err := s.generateAccessToken(user.ID, user.Email, user.Role)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
@@ -123,6 +124,7 @@ func (s *UserService) LoginUser(ctx context.Context, req *userpb.LoginUserReques
 		UserId:       user.ID.String(),
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		Role:         roleToProto(user.Role),
 	}, nil
 }
 
@@ -381,6 +383,7 @@ func (s *UserService) userToProto(u db.User) *userpb.User {
 		Name:      u.Name,
 		Phone:     u.Phone,
 		Active:    u.Active,
+		Role:      roleToProto(u.Role),
 		CreatedAt: timestamppb.New(u.CreatedAt),
 		UpdatedAt: updatedAt,
 	}
@@ -402,10 +405,11 @@ func (s *UserService) addressToProto(a db.Address) *userpb.Address {
 	}
 }
 
-func (s *UserService) generateAccessToken(userID uuid.UUID, email string) (string, error) {
+func (s *UserService) generateAccessToken(userID uuid.UUID, email string, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID.String(),
 		"email":   email,
+		"role":    role,
 		"exp":     time.Now().Add(time.Duration(s.cfg.AccessTokenDuration) * time.Minute).Unix(),
 		"iat":     time.Now().Unix(),
 		"jti":     "shinkansen",
@@ -439,4 +443,15 @@ func (s *UserService) generateRefreshToken(userID uuid.UUID) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func roleToProto(role string) userpb.UserRole {
+	switch role {
+	case "admin":
+		return userpb.UserRole_USER_ROLE_ADMIN
+	case "customer":
+		return userpb.UserRole_USER_ROLE_CUSTOMER
+	default:
+		return userpb.UserRole_USER_ROLE_UNSPECIFIED
+	}
 }

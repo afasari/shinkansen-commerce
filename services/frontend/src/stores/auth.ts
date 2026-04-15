@@ -10,11 +10,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!accessToken.value)
   const userId = computed(() => localStorage.getItem('user_id'))
+  const role = computed(() => user.value?.role || localStorage.getItem('user_role') || 'customer')
+  const isAdmin = computed(() => role.value === 'admin')
 
   async function login(email: string, password: string) {
     const res = await authApi.login({ email, password })
     accessToken.value = res.access_token
     refreshToken.value = res.refresh_token
+    if (res.role) {
+      localStorage.setItem('user_role', res.role)
+    }
     user.value = await authApi.getCurrentUser()
   }
 
@@ -22,6 +27,9 @@ export const useAuthStore = defineStore('auth', () => {
     const res = await authApi.register(data)
     accessToken.value = res.access_token
     refreshToken.value = res.refresh_token
+    if (res.role) {
+      localStorage.setItem('user_role', res.role)
+    }
     user.value = await authApi.getCurrentUser()
   }
 
@@ -45,5 +53,5 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken.value = null
   }
 
-  return { user, accessToken, refreshToken, isAuthenticated, userId, login, register, fetchUser, updateProfile, logout }
+  return { user, accessToken, refreshToken, isAuthenticated, userId, role, isAdmin, login, register, fetchUser, updateProfile, logout }
 })

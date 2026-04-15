@@ -119,6 +119,11 @@ func (h *PaymentHandler) processPayment(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *PaymentHandler) refundPayment(w http.ResponseWriter, r *http.Request, ctx context.Context, paymentID string) {
+	if !isAdmin(r) {
+		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

@@ -122,6 +122,11 @@ func (h *InventoryHandler) getStock(w http.ResponseWriter, r *http.Request, ctx 
 }
 
 func (h *InventoryHandler) updateStock(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	if !isAdmin(r) {
+		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+		return
+	}
+
 	var req inventorypb.UpdateStockRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -138,6 +143,11 @@ func (h *InventoryHandler) updateStock(w http.ResponseWriter, r *http.Request, c
 }
 
 func (h *InventoryHandler) reserveStock(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	if !isAdmin(r) {
+		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+		return
+	}
+
 	var req inventorypb.ReserveStockRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -154,6 +164,11 @@ func (h *InventoryHandler) reserveStock(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *InventoryHandler) releaseStock(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	if !isAdmin(r) {
+		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+		return
+	}
+
 	var req inventorypb.ReleaseStockRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)

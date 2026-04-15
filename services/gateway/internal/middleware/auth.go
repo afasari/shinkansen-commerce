@@ -10,6 +10,7 @@ import (
 
 const (
 	UserIDKey contextKey = "user_id"
+	RoleKey   contextKey = "role"
 )
 
 func Auth(jwtSecret string) func(http.Handler) http.Handler {
@@ -52,7 +53,13 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
+			role := "customer"
+			if r, ok := claims["role"].(string); ok {
+				role = r
+			}
+
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx = context.WithValue(ctx, RoleKey, role)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

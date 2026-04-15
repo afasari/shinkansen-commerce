@@ -41,7 +41,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin',
     component: () => import('@/layouts/AdminLayout.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       { path: '', name: 'admin-dashboard', component: () => import('@/pages/admin/DashboardPage.vue') },
       { path: 'products', name: 'admin-products', component: () => import('@/pages/admin/ProductListPage.vue') },
@@ -74,6 +74,10 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    return { name: 'home' }
   }
 
   if (to.meta.guestOnly && authStore.isAuthenticated) {

@@ -8,6 +8,7 @@ import (
 
 	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
 	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
+	"github.com/afasari/shinkansen-commerce/services/gateway/internal/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -188,6 +189,11 @@ func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, ctx 
 }
 
 func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	if !isAdmin(r) {
+		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+		return
+	}
+
 	var req productpb.CreateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -204,6 +210,11 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request, c
 }
 
 func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, ctx context.Context, productID string) {
+	if !isAdmin(r) {
+		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+		return
+	}
+
 	var req productpb.UpdateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -221,6 +232,11 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, c
 }
 
 func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, ctx context.Context, productID string) {
+	if !isAdmin(r) {
+		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+		return
+	}
+
 	req := &productpb.DeleteProductRequest{ProductId: productID}
 	_, err := h.client.DeleteProduct(ctx, req)
 	if err != nil {
@@ -256,4 +272,9 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	if data != nil {
 		_ = json.NewEncoder(w).Encode(data)
 	}
+}
+
+func isAdmin(r *http.Request) bool {
+	role, _ := r.Context().Value(middleware.RoleKey).(string)
+	return role == "admin"
 }

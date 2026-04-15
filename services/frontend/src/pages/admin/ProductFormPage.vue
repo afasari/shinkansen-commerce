@@ -12,13 +12,14 @@ const productStore = useProductStore()
 
 const isEdit = computed(() => route.name === 'admin-product-edit')
 const saving = ref(false)
+const error = ref('')
 
 const name = ref('')
 const description = ref('')
 const categoryId = ref('')
-const priceUnits = ref(0)
+const priceUnits = ref<string>('')
 const sku = ref('')
-const stockQuantity = ref(100)
+const stockQuantity = ref<string>('100')
 const imageUrls = ref('')
 const active = ref(true)
 
@@ -30,9 +31,9 @@ onMounted(async () => {
       name.value = p.name
       description.value = p.description
       categoryId.value = p.category_id
-      priceUnits.value = p.price?.units || 0
+      priceUnits.value = String(p.price?.units ?? '')
       sku.value = p.sku
-      stockQuantity.value = p.stock_quantity
+      stockQuantity.value = String(p.stock_quantity)
       imageUrls.value = (p.image_urls || []).join('\n')
       active.value = p.active
     }
@@ -40,34 +41,46 @@ onMounted(async () => {
 })
 
 async function handleSave() {
+  error.value = ''
+  if (!name.value.trim()) {
+    error.value = 'Product name is required'
+    return
+  }
+  const price = Number(priceUnits.value)
+  if (!priceUnits.value || isNaN(price) || price <= 0) {
+    error.value = 'Price must be a positive number'
+    return
+  }
+
   saving.value = true
   try {
     const images = imageUrls.value.split('\n').map((u) => u.trim()).filter(Boolean)
-    const price: Money = { currency: 'JPY', units: priceUnits.value, nanos: 0 }
+    const money: Money = { currency: 'JPY', units: price }
 
     if (isEdit.value) {
       await productStore.updateProduct(route.params.id as string, {
         name: name.value,
         description: description.value,
-        category_id: categoryId.value,
-        price,
+        category_id: categoryId.value || undefined,
+        price: money,
         active: active.value,
-        image_urls: images,
+        image_urls: images.length > 0 ? images : undefined,
       })
     } else {
       await productStore.createProduct({
         name: name.value,
         description: description.value,
-        category_id: categoryId.value,
-        price,
-        sku: sku.value,
-        stock_quantity: stockQuantity.value,
+        category_id: categoryId.value || '',
+        price: money,
+        sku: sku.value || '',
+        stock_quantity: Number(stockQuantity.value) || 0,
         image_urls: images,
       })
     }
     router.push({ name: 'admin-products' })
   } catch (e: unknown) {
-    alert((e as Error).message)
+    const err = e as any
+    error.value = err.response?.data?.message || err.message || 'Failed to save product'
   } finally {
     saving.value = false
   }
@@ -81,37 +94,41 @@ async function handleSave() {
     </div>
 
     <div class="card p-6 max-w-2xl">
+      <div v-if="error" class="rounded-md bg-red-50 p-3 mb-4">
+        <p class="text-sm text-red-700">{{ error }}</p>
+      </div>
+
       <form @submit.prevent="handleSave" class="space-y-4">
         <div>
           <label class="label-field">{{ t('product.productName') }} *</label>
-          <input v-model="name" required class="input-field mt-1" />
+          <input v-model="name" required class="input-field mt-1" placeholder="e.g. Shinkansen Bento Box" />
         </div>
         <div>
           <label class="label-field">{{ t('product.productDescription') }}</label>
-          <textarea v-model="description" rows="4" class="input-field mt-1"></textarea>
+          <textarea v-model="description" rows="4" class="input-field mt-1" placeholder="Product description..."></textarea>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="label-field">{{ t('product.category') }} ID</label>
-            <input v-model="categoryId" class="input-field mt-1" />
+            <input v-model="categoryId" class="input-field mt-1" placeholder="e.g. cat-food" />
           </div>
           <div>
             <label class="label-field">{{ t('common.price') }} (JPY) *</label>
-            <input v-model.number="priceUnits" type="number" required class="input-field mt-1" />
+            <input v-model="priceUnits" type="number" required min="1" class="input-field mt-1" placeholder="e.g. 1500" />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div v-if="!isEdit" class="grid grid-cols-2 gap-4">
           <div>
             <label class="label-field">{{ t('product.sku') }}</label>
-            <input v-model="sku" class="input-field mt-1" :disabled="isEdit" />
+            <input v-model="sku" class="input-field mt-1" placeholder="e.g. BENTO-001" />
           </div>
           <div>
             <label class="label-field">{{ t('product.stockQuantity') }}</label>
-            <input v-model.number="stockQuantity" type="number" class="input-field mt-1" :disabled="isEdit" />
+            <input v-model="stockQuantity" type="number" min="0" class="input-field mt-1" />
           </div>
         </div>
         <div>
-          <label class="label-field">{{ t('product.imageUrls') }} ({{ t('common.optional') }}, {{ t('common.onePerLine') }})</label>
+          <label class="label-field">{{ t('product.imageUrls') }} (optional, one per line)</label>
           <textarea v-model="imageUrls" rows="3" class="input-field mt-1" placeholder="https://example.com/image1.jpg"></textarea>
         </div>
         <label class="flex items-center gap-2">

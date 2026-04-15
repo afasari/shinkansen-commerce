@@ -72,7 +72,7 @@ function handleLogout() {
             <router-link to="/account/profile" class="p-2 text-gray-700 hover:text-shinkansen-600">
               <UserCircleIcon class="h-6 w-6" />
             </router-link>
-            <router-link to="/admin" class="p-2 text-gray-700 hover:text-shinkansen-600" :title="t('nav.admin')">
+            <router-link v-if="authStore.isAdmin" to="/admin" class="p-2 text-gray-700 hover:text-shinkansen-600" :title="t('nav.admin')">
               <Cog6ToothIcon class="h-6 w-6" />
             </router-link>
             <button @click="handleLogout" class="text-sm text-gray-500 hover:text-gray-700">{{ t('nav.logout') }}</button>
@@ -102,7 +102,7 @@ function handleLogout() {
         <template v-if="authStore.isAuthenticated">
           <router-link to="/account/profile" @click="mobileMenuOpen = false" class="block text-sm font-medium text-gray-700 py-2">{{ t('nav.profile') }}</router-link>
           <router-link to="/account/orders" @click="mobileMenuOpen = false" class="block text-sm font-medium text-gray-700 py-2">{{ t('nav.orders') }}</router-link>
-          <router-link to="/admin" @click="mobileMenuOpen = false" class="block text-sm font-medium text-shinkansen-600 py-2 font-semibold">{{ t('nav.admin') }}</router-link>
+          <router-link v-if="authStore.isAdmin" to="/admin" @click="mobileMenuOpen = false" class="block text-sm font-medium text-shinkansen-600 py-2 font-semibold">{{ t('nav.admin') }}</router-link>
           <button @click="handleLogout" class="block text-sm font-medium text-gray-700 py-2">{{ t('nav.logout') }}</button>
         </template>
         <template v-else>

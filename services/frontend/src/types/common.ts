@@ -1,7 +1,7 @@
 export interface Money {
   currency: string
   units: number
-  nanos: number
+  nanos?: number
 }
 
 export interface Pagination {

@@ -2,7 +2,9 @@ import type { Money } from '@/types'
 
 export function formatPrice(money: Money | undefined | null): string {
   if (!money) return '¥0'
-  const amount = money.units + money.nanos / 1_000_000_000
+  const units = money.units ?? 0
+  const nanos = money.nanos ?? 0
+  const amount = units + nanos / 1_000_000_000
   return `¥${Math.round(amount).toLocaleString()}`
 }
 
@@ -36,7 +38,7 @@ export function formatTime(dateStr: string | undefined | null): string {
 
 export function moneyToNumber(money: Money | undefined | null): number {
   if (!money) return 0
-  return money.units + money.nanos / 1_000_000_000
+  return (money.units ?? 0) + (money.nanos ?? 0) / 1_000_000_000
 }
 
 export function createMoney(units: number, currency = 'JPY'): Money {

@@ -20,12 +20,16 @@ function setTokens(response: AuthResponse) {
   localStorage.setItem('access_token', response.access_token)
   localStorage.setItem('refresh_token', response.refresh_token)
   localStorage.setItem('user_id', response.user_id)
+  if (response.role) {
+    localStorage.setItem('user_role', response.role)
+  }
 }
 
 function clearTokens() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('user_id')
+  localStorage.removeItem('user_role')
 }
 
 client.interceptors.request.use((config) => {

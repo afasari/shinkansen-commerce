@@ -23,6 +23,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type UserRole int32
+
+const (
+	UserRole_USER_ROLE_UNSPECIFIED UserRole = 0
+	UserRole_USER_ROLE_CUSTOMER    UserRole = 1
+	UserRole_USER_ROLE_ADMIN       UserRole = 2
+)
+
+// Enum value maps for UserRole.
+var (
+	UserRole_name = map[int32]string{
+		0: "USER_ROLE_UNSPECIFIED",
+		1: "USER_ROLE_CUSTOMER",
+		2: "USER_ROLE_ADMIN",
+	}
+	UserRole_value = map[string]int32{
+		"USER_ROLE_UNSPECIFIED": 0,
+		"USER_ROLE_CUSTOMER":    1,
+		"USER_ROLE_ADMIN":       2,
+	}
+)
+
+func (x UserRole) Enum() *UserRole {
+	p := new(UserRole)
+	*p = x
+	return p
+}
+
+func (x UserRole) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UserRole) Descriptor() protoreflect.EnumDescriptor {
+	return file_user_user_messages_proto_enumTypes[0].Descriptor()
+}
+
+func (UserRole) Type() protoreflect.EnumType {
+	return &file_user_user_messages_proto_enumTypes[0]
+}
+
+func (x UserRole) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UserRole.Descriptor instead.
+func (UserRole) EnumDescriptor() ([]byte, []int) {
+	return file_user_user_messages_proto_rawDescGZIP(), []int{0}
+}
+
 type User struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -32,6 +81,7 @@ type User struct {
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	Active        bool                   `protobuf:"varint,7,opt,name=active,proto3" json:"active,omitempty"`
+	Role          UserRole               `protobuf:"varint,8,opt,name=role,proto3,enum=shinkansen.user.UserRole" json:"role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -113,6 +163,13 @@ func (x *User) GetActive() bool {
 		return x.Active
 	}
 	return false
+}
+
+func (x *User) GetRole() UserRole {
+	if x != nil {
+		return x.Role
+	}
+	return UserRole_USER_ROLE_UNSPECIFIED
 }
 
 type Address struct {
@@ -312,6 +369,7 @@ type RegisterUserResponse struct {
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	AccessToken   string                 `protobuf:"bytes,2,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	RefreshToken  string                 `protobuf:"bytes,3,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	Role          UserRole               `protobuf:"varint,4,opt,name=role,proto3,enum=shinkansen.user.UserRole" json:"role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -365,6 +423,13 @@ func (x *RegisterUserResponse) GetRefreshToken() string {
 		return x.RefreshToken
 	}
 	return ""
+}
+
+func (x *RegisterUserResponse) GetRole() UserRole {
+	if x != nil {
+		return x.Role
+	}
+	return UserRole_USER_ROLE_UNSPECIFIED
 }
 
 type LoginUserRequest struct {
@@ -424,6 +489,7 @@ type LoginUserResponse struct {
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	AccessToken   string                 `protobuf:"bytes,2,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	RefreshToken  string                 `protobuf:"bytes,3,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	Role          UserRole               `protobuf:"varint,4,opt,name=role,proto3,enum=shinkansen.user.UserRole" json:"role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -477,6 +543,13 @@ func (x *LoginUserResponse) GetRefreshToken() string {
 		return x.RefreshToken
 	}
 	return ""
+}
+
+func (x *LoginUserResponse) GetRole() UserRole {
+	if x != nil {
+		return x.Role
+	}
+	return UserRole_USER_ROLE_UNSPECIFIED
 }
 
 type GetUserRequest struct {
@@ -1171,7 +1244,7 @@ var File_user_user_messages_proto protoreflect.FileDescriptor
 
 const file_user_user_messages_proto_rawDesc = "" +
 	"\n" +
-	"\x18user/user_messages.proto\x12\x0fshinkansen.user\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xe4\x01\n" +
+	"\x18user/user_messages.proto\x12\x0fshinkansen.user\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x93\x02\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -1181,7 +1254,8 @@ const file_user_user_messages_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x16\n" +
-	"\x06active\x18\a \x01(\bR\x06active\"\xd5\x02\n" +
+	"\x06active\x18\a \x01(\bR\x06active\x12-\n" +
+	"\x04role\x18\b \x01(\x0e2\x19.shinkansen.user.UserRoleR\x04role\"\xd5\x02\n" +
 	"\aAddress\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -1204,18 +1278,20 @@ const file_user_user_messages_proto_rawDesc = "" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
-	"\x05phone\x18\x04 \x01(\tR\x05phone\"w\n" +
+	"\x05phone\x18\x04 \x01(\tR\x05phone\"\xa6\x01\n" +
 	"\x14RegisterUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\faccess_token\x18\x02 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\"D\n" +
+	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\x12-\n" +
+	"\x04role\x18\x04 \x01(\x0e2\x19.shinkansen.user.UserRoleR\x04role\"D\n" +
 	"\x10LoginUserRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"t\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xa3\x01\n" +
 	"\x11LoginUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\faccess_token\x18\x02 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\")\n" +
+	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\x12-\n" +
+	"\x04role\x18\x04 \x01(\x0e2\x19.shinkansen.user.UserRoleR\x04role\")\n" +
 	"\x0eGetUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"<\n" +
 	"\x0fGetUserResponse\x12)\n" +
@@ -1271,7 +1347,11 @@ const file_user_user_messages_proto_rawDesc = "" +
 	"\n" +
 	"address_id\x18\x02 \x01(\tR\taddressId\"&\n" +
 	"\x0eOptionalString\x12\x14\n" +
-	"\x05value\x18\x01 \x01(\tR\x05valueB:Z8github.com/afasari/shinkansen-commerce/gen/proto/go/userb\x06proto3"
+	"\x05value\x18\x01 \x01(\tR\x05value*R\n" +
+	"\bUserRole\x12\x19\n" +
+	"\x15USER_ROLE_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12USER_ROLE_CUSTOMER\x10\x01\x12\x13\n" +
+	"\x0fUSER_ROLE_ADMIN\x10\x02B:Z8github.com/afasari/shinkansen-commerce/gen/proto/go/userb\x06proto3"
 
 var (
 	file_user_user_messages_proto_rawDescOnce sync.Once
@@ -1285,53 +1365,58 @@ func file_user_user_messages_proto_rawDescGZIP() []byte {
 	return file_user_user_messages_proto_rawDescData
 }
 
+var file_user_user_messages_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_user_user_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_user_user_messages_proto_goTypes = []any{
-	(*User)(nil),                   // 0: shinkansen.user.User
-	(*Address)(nil),                // 1: shinkansen.user.Address
-	(*RegisterUserRequest)(nil),    // 2: shinkansen.user.RegisterUserRequest
-	(*RegisterUserResponse)(nil),   // 3: shinkansen.user.RegisterUserResponse
-	(*LoginUserRequest)(nil),       // 4: shinkansen.user.LoginUserRequest
-	(*LoginUserResponse)(nil),      // 5: shinkansen.user.LoginUserResponse
-	(*GetUserRequest)(nil),         // 6: shinkansen.user.GetUserRequest
-	(*GetUserResponse)(nil),        // 7: shinkansen.user.GetUserResponse
-	(*UpdateUserRequest)(nil),      // 8: shinkansen.user.UpdateUserRequest
-	(*UpdateUserResponse)(nil),     // 9: shinkansen.user.UpdateUserResponse
-	(*AddAddressRequest)(nil),      // 10: shinkansen.user.AddAddressRequest
-	(*AddAddressResponse)(nil),     // 11: shinkansen.user.AddAddressResponse
-	(*ListAddressesRequest)(nil),   // 12: shinkansen.user.ListAddressesRequest
-	(*ListAddressesResponse)(nil),  // 13: shinkansen.user.ListAddressesResponse
-	(*UpdateAddressRequest)(nil),   // 14: shinkansen.user.UpdateAddressRequest
-	(*UpdateAddressResponse)(nil),  // 15: shinkansen.user.UpdateAddressResponse
-	(*DeleteAddressRequest)(nil),   // 16: shinkansen.user.DeleteAddressRequest
-	(*OptionalString)(nil),         // 17: shinkansen.user.OptionalString
-	(*timestamppb.Timestamp)(nil),  // 18: google.protobuf.Timestamp
-	(*wrapperspb.StringValue)(nil), // 19: google.protobuf.StringValue
-	(*wrapperspb.BoolValue)(nil),   // 20: google.protobuf.BoolValue
+	(UserRole)(0),                  // 0: shinkansen.user.UserRole
+	(*User)(nil),                   // 1: shinkansen.user.User
+	(*Address)(nil),                // 2: shinkansen.user.Address
+	(*RegisterUserRequest)(nil),    // 3: shinkansen.user.RegisterUserRequest
+	(*RegisterUserResponse)(nil),   // 4: shinkansen.user.RegisterUserResponse
+	(*LoginUserRequest)(nil),       // 5: shinkansen.user.LoginUserRequest
+	(*LoginUserResponse)(nil),      // 6: shinkansen.user.LoginUserResponse
+	(*GetUserRequest)(nil),         // 7: shinkansen.user.GetUserRequest
+	(*GetUserResponse)(nil),        // 8: shinkansen.user.GetUserResponse
+	(*UpdateUserRequest)(nil),      // 9: shinkansen.user.UpdateUserRequest
+	(*UpdateUserResponse)(nil),     // 10: shinkansen.user.UpdateUserResponse
+	(*AddAddressRequest)(nil),      // 11: shinkansen.user.AddAddressRequest
+	(*AddAddressResponse)(nil),     // 12: shinkansen.user.AddAddressResponse
+	(*ListAddressesRequest)(nil),   // 13: shinkansen.user.ListAddressesRequest
+	(*ListAddressesResponse)(nil),  // 14: shinkansen.user.ListAddressesResponse
+	(*UpdateAddressRequest)(nil),   // 15: shinkansen.user.UpdateAddressRequest
+	(*UpdateAddressResponse)(nil),  // 16: shinkansen.user.UpdateAddressResponse
+	(*DeleteAddressRequest)(nil),   // 17: shinkansen.user.DeleteAddressRequest
+	(*OptionalString)(nil),         // 18: shinkansen.user.OptionalString
+	(*timestamppb.Timestamp)(nil),  // 19: google.protobuf.Timestamp
+	(*wrapperspb.StringValue)(nil), // 20: google.protobuf.StringValue
+	(*wrapperspb.BoolValue)(nil),   // 21: google.protobuf.BoolValue
 }
 var file_user_user_messages_proto_depIdxs = []int32{
-	18, // 0: shinkansen.user.User.created_at:type_name -> google.protobuf.Timestamp
-	18, // 1: shinkansen.user.User.updated_at:type_name -> google.protobuf.Timestamp
-	18, // 2: shinkansen.user.Address.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 3: shinkansen.user.GetUserResponse.user:type_name -> shinkansen.user.User
-	19, // 4: shinkansen.user.UpdateUserRequest.name:type_name -> google.protobuf.StringValue
-	19, // 5: shinkansen.user.UpdateUserRequest.phone:type_name -> google.protobuf.StringValue
-	0,  // 6: shinkansen.user.UpdateUserResponse.user:type_name -> shinkansen.user.User
-	1,  // 7: shinkansen.user.ListAddressesResponse.addresses:type_name -> shinkansen.user.Address
-	19, // 8: shinkansen.user.UpdateAddressRequest.name:type_name -> google.protobuf.StringValue
-	19, // 9: shinkansen.user.UpdateAddressRequest.phone:type_name -> google.protobuf.StringValue
-	19, // 10: shinkansen.user.UpdateAddressRequest.postal_code:type_name -> google.protobuf.StringValue
-	19, // 11: shinkansen.user.UpdateAddressRequest.prefecture:type_name -> google.protobuf.StringValue
-	19, // 12: shinkansen.user.UpdateAddressRequest.city:type_name -> google.protobuf.StringValue
-	19, // 13: shinkansen.user.UpdateAddressRequest.address_line1:type_name -> google.protobuf.StringValue
-	19, // 14: shinkansen.user.UpdateAddressRequest.address_line2:type_name -> google.protobuf.StringValue
-	20, // 15: shinkansen.user.UpdateAddressRequest.is_default:type_name -> google.protobuf.BoolValue
-	1,  // 16: shinkansen.user.UpdateAddressResponse.address:type_name -> shinkansen.user.Address
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	19, // 0: shinkansen.user.User.created_at:type_name -> google.protobuf.Timestamp
+	19, // 1: shinkansen.user.User.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: shinkansen.user.User.role:type_name -> shinkansen.user.UserRole
+	19, // 3: shinkansen.user.Address.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 4: shinkansen.user.RegisterUserResponse.role:type_name -> shinkansen.user.UserRole
+	0,  // 5: shinkansen.user.LoginUserResponse.role:type_name -> shinkansen.user.UserRole
+	1,  // 6: shinkansen.user.GetUserResponse.user:type_name -> shinkansen.user.User
+	20, // 7: shinkansen.user.UpdateUserRequest.name:type_name -> google.protobuf.StringValue
+	20, // 8: shinkansen.user.UpdateUserRequest.phone:type_name -> google.protobuf.StringValue
+	1,  // 9: shinkansen.user.UpdateUserResponse.user:type_name -> shinkansen.user.User
+	2,  // 10: shinkansen.user.ListAddressesResponse.addresses:type_name -> shinkansen.user.Address
+	20, // 11: shinkansen.user.UpdateAddressRequest.name:type_name -> google.protobuf.StringValue
+	20, // 12: shinkansen.user.UpdateAddressRequest.phone:type_name -> google.protobuf.StringValue
+	20, // 13: shinkansen.user.UpdateAddressRequest.postal_code:type_name -> google.protobuf.StringValue
+	20, // 14: shinkansen.user.UpdateAddressRequest.prefecture:type_name -> google.protobuf.StringValue
+	20, // 15: shinkansen.user.UpdateAddressRequest.city:type_name -> google.protobuf.StringValue
+	20, // 16: shinkansen.user.UpdateAddressRequest.address_line1:type_name -> google.protobuf.StringValue
+	20, // 17: shinkansen.user.UpdateAddressRequest.address_line2:type_name -> google.protobuf.StringValue
+	21, // 18: shinkansen.user.UpdateAddressRequest.is_default:type_name -> google.protobuf.BoolValue
+	2,  // 19: shinkansen.user.UpdateAddressResponse.address:type_name -> shinkansen.user.Address
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_user_user_messages_proto_init() }
@@ -1344,13 +1429,14 @@ func file_user_user_messages_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_user_messages_proto_rawDesc), len(file_user_user_messages_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_user_user_messages_proto_goTypes,
 		DependencyIndexes: file_user_user_messages_proto_depIdxs,
+		EnumInfos:         file_user_user_messages_proto_enumTypes,
 		MessageInfos:      file_user_user_messages_proto_msgTypes,
 	}.Build()
 	File_user_user_messages_proto = out.File

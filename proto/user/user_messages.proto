@@ -7,6 +7,12 @@ import "google/protobuf/wrappers.proto";
 
 option go_package = "github.com/afasari/shinkansen-commerce/gen/proto/go/user";
 
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;
+  USER_ROLE_CUSTOMER = 1;
+  USER_ROLE_ADMIN = 2;
+}
+
 message User {
   string id = 1;
   string email = 2;
@@ -15,6 +21,7 @@ message User {
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
   bool active = 7;
+  UserRole role = 8;
 }
 
 message Address {
@@ -42,6 +49,7 @@ message RegisterUserResponse {
   string user_id = 1;
   string access_token = 2;
   string refresh_token = 3;
+  UserRole role = 4;
 }
 
 message LoginUserRequest {
@@ -53,6 +61,7 @@ message LoginUserResponse {
   string user_id = 1;
   string access_token = 2;
   string refresh_token = 3;
+  UserRole role = 4;
 }
 
 message GetUserRequest {
