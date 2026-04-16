@@ -126,7 +126,6 @@ init-deps: ## Download all dependencies
 	cd services/payment-service && go mod tidy && go fmt ./..
 	cd services/user-service && go mod tidy && go fmt ./..
 	cd services/delivery-service && go mod tidy && go fmt ./..
-	cd services/shared/go && go mod tidy && go fmt ./..
 	@echo "📝 Formatting inventory-service..."
 	@cd services/inventory-service && cargo fmt --all
 	@echo "✅ All dependencies installed"
@@ -234,8 +233,6 @@ test: ## Run all tests
 	cd services/user-service && go test ./...
 	@echo "🧪 Running Delivery Service tests..."
 	cd services/delivery-service && go test ./...
-	# @echo "🧪 Running Shared tests..."
-	# cd services/shared/go && go test ./...
 	@echo "🧪 Running inventory-service tests..."
 	@cd services/inventory-service &&	cargo test -- --test-threads=1
 

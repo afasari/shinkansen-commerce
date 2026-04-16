@@ -5,10 +5,8 @@ toolchain go1.24.9
 use (
 	./services/delivery-service
 	./services/gateway
-	./services/inventory-service
 	./services/order-service
 	./services/payment-service
 	./services/product-service
-	./services/shared/go
 	./services/user-service
 )

@@ -42,6 +42,7 @@ Spec-first polyglot microservices monorepo. Proto files in `proto/` are the sour
 | inventory-service | Rust | 9105 | 8105 |
 | delivery-service | Go | 9106 | 8106 |
 | analytics-worker | Python | — | — |
+| frontend | Vue 3 + TS | — | 5173 (dev) |
 
 Go 1.24 workspace mode (`go.work`). Each Go service has its own `go.mod`. Services import generated proto code via `github.com/afasari/shinkansen-commerce/gen/proto/go/<service>`.
 
@@ -84,7 +85,9 @@ services/<go-service>/
 └── go.mod
 ```
 
-Gateway is different — no DB/sqlc layer. Structure: `cmd/` → `internal/handler/` + `internal/client/` + `internal/middleware/` + `internal/cache/`. It proxies REST↔gRPC rather than owning data.
+Gateway is different — no DB/sqlc layer. Structure: `cmd/` → `internal/handler/` + `internal/middleware/` + `internal/cache/`. It proxies REST↔gRPC rather than owning data. Admin-only endpoints (product CRUD, inventory write ops, shipment status updates, payment refunds) check the `role` JWT claim via `isAdmin()` helper in handler.
+
+Frontend (services/frontend): Vue 3 + TypeScript + Tailwind CSS + Headless UI. Vite dev server proxies `/v1` and `/health` to `localhost:8080`. Role-aware: admin link and `/admin/*` routes only accessible when `role === "admin"` in JWT. Cart is client-side (localStorage, no backend cart API).
 
 Rust service (inventory-service): `src/main.rs` → `service.rs` → `repository.rs` (sqlx with compile-time checked macros). Proto codegen lives in `gen/proto/rust/build.rs` (a separate Cargo crate `shinkansen-proto`); the inventory-service's own `build.rs` is a 3-line stub that just triggers reruns. Migrations are at `services/inventory-service/migrations/` (root, not internal/) — single SQL files, not up/down pairs.
 
@@ -140,15 +143,9 @@ cd services/inventory-service && cargo fmt --all -- --check        # Format chec
 
 ## Infrastructure
 
-`docker-compose.yml` starts PostgreSQL 15, Redis 7, and all services. No Kafka/MinIO/Jaeger/Prometheus/Grafana in the compose file (despite README mentioning them).
+`docker-compose.yml` starts PostgreSQL 15, Redis 7, and all services. No Kafka/MinIO/Jaeger/Prometheus/Grafana in the compose file.
 
-`deploy/k8s/base/k8s.yaml` has real Deployment, Service, ConfigMap, Secret, and HPA manifests for production use. `deploy/terraform/` and `deploy/docker/` are empty.
-
-**Warning:** `deploy/prometheus/prometheus.yml` has stale/incorrect scrape ports for every service — do not trust it as a source of truth for metrics endpoints.
-
-Observability endpoints:
-- Grafana: `http://localhost:3000` (admin/admin) — if deployed separately
-- Jaeger: `http://localhost:16686` — if deployed separately
+`deploy/k8s/base/k8s.yaml` has Deployment, Service, ConfigMap, Secret, and HPA manifests for gateway and product-service only. Other services need K8s manifests added.
 
 ## CI
 

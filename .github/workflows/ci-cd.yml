@@ -57,10 +57,6 @@ jobs:
         working-directory: services/delivery-service
         run: go mod download
 
-      - name: Download shared/go dependencies
-        working-directory: services/shared/go
-        run: go mod download
-
       - name: Verify Go dependencies
         run: go list -m all
 
@@ -154,10 +150,6 @@ jobs:
   #       working-directory: services/delivery-service
   #       run: go mod tidy
 
-  #     - name: Download shared/go dependencies
-  #       working-directory: services/shared/go
-  #       run: go mod tidy
-
   #     - name: Run tests
   #       run: make test-coverage
   #       env:
@@ -244,10 +236,6 @@ jobs:
 
   #     - name: Download delivery-service dependencies
   #       working-directory: services/delivery-service
-  #       run: go mod tidy
-
-  #     - name: Download shared/go dependencies
-  #       working-directory: services/shared/go
   #       run: go mod tidy
 
   #     - name: Build services

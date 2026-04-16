@@ -90,3 +90,9 @@ uv.lock
 node_modules/
 docs/node_modules/
 docs/package-lock.json
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# Python caches
+.ruff_cache/
+.venv/

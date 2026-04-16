@@ -1,400 +1,250 @@
-# 🚄 Shinkansen Commerce
+# Shinkansen Commerce
 
-A high-performance, spec-first polyglot monorepo e-commerce platform designed for the Japanese market, built with best practices used by companies like Rakuten and PayPay.
+A spec-first polyglot microservices e-commerce platform, built with Go, Rust, Python, and Vue.js.
 
-## 🎯 Philosophy
+## Philosophy
 
-**The Specification (.proto) is the source of truth. Code is just a byproduct.**
+**The protobuf specification is the source of truth. Code is generated from it.**
 
-This project demonstrates:
-- Decoupled, type-safe microservices architecture
-- Polyglot monorepo (Go, Rust, Python)
-- Production-grade infrastructure (Kubernetes, Docker)
-- Japanese e-commerce features (Konbini payments, Point systems)
+- Decoupled, type-safe microservices with gRPC internal communication
+- Polyglot monorepo (Go, Rust, Python, TypeScript)
+- Spec-first development (proto -> code generation via `make gen`)
+- Role-based access control (customer vs admin)
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
-| **Core Services** | Go 1.21 |
-| **Performance Services** | Rust |
-| **Analytics/AI** | Python 3.11 |
-| **API Gateway** | Go (grpc-gateway) |
-| **Communication** | gRPC (Internal), REST (External) |
-| **Data Access** | sqlc (SQL → Code generation) |
+| **Go Services** | Go 1.24 |
+| **Inventory Service** | Rust (tonic, sqlx) |
+| **Analytics Worker** | Python 3.11+ (uv-managed) |
+| **Frontend** | Vue 3 + TypeScript + Tailwind CSS |
+| **API Gateway** | Go (REST -> gRPC proxy) |
+| **Communication** | gRPC (internal), REST (external via gateway) |
+| **Data Access** | sqlc (SQL -> typed Go code), sqlx (Rust) |
 | **Database** | PostgreSQL 15 |
 | **Cache** | Redis 7 |
-| **Message Queue** | Kafka 3.5 |
-| **Object Storage** | MinIO |
-| **Observability** | Prometheus, Grafana, Jaeger |
-| **Container Orchestration** | Kubernetes |
-| **CI/CD** | GitHub Actions |
-| **Infrastructure** | Terraform, Docker Compose |
+| **Code Generation** | buf (proto), sqlc (SQL), protoc-gen-openapiv2 (OpenAPI) |
+| **Containerization** | Docker Compose, Kubernetes (partial) |
+| **CI/CD** | GitHub Actions (lint active, test/build commented out) |
 
-## 📁 Monorepo Structure
+## Architecture
+
+```
+                    ┌────────────────────────────────┐
+                    │        Frontend (Vue 3)         │
+                    │    :5173 (dev, proxies to :8080) │
+                    └──────────────┬─────────────────┘
+                                   │
+                    ┌──────────────▼─────────────────┐
+                    │     Gateway (Go) :8080          │
+                    │  REST ↔ gRPC, JWT auth, RBAC    │
+                    └──────────────┬─────────────────┘
+                                   │ gRPC
+          ┌────────────┬───────────┼───────────┬────────────┐
+          ▼            ▼           ▼           ▼            ▼
+   ┌────────────┐ ┌─────────┐ ┌────────┐ ┌─────────┐ ┌──────────┐
+   │  Product   │ │  Order  │ │  User  │ │ Payment │ │ Delivery │
+   │  (Go)      │ │  (Go)   │ │  (Go)  │ │  (Go)   │ │  (Go)    │
+   │ :9091      │ │ :9092   │ │ :9103  │ │ :9104   │ │ :9106    │
+   └────────────┘ └────┬────┘ └────────┘ └─────────┘ └──────────┘
+                       │
+              ┌────────▼────────┐
+              │   Inventory     │
+              │   (Rust) :9105  │
+              └─────────────────┘
+                       │
+              ┌────────▼────────┐
+              │   Analytics     │
+              │   (Python)      │
+              └─────────────────┘
+```
+
+### Service Ports
+
+| Service | Language | gRPC Port | Metrics Port |
+|---------|----------|-----------|--------------|
+| gateway | Go | — | 8080 (HTTP) |
+| product-service | Go | 9091 | 8091 |
+| order-service | Go | 9092 | 8092 |
+| user-service | Go | 9103 | 8103 |
+| payment-service | Go | 9104 | 8104 |
+| inventory-service | Rust | 9105 | 8105 |
+| delivery-service | Go | 9106 | 8106 |
+| analytics-worker | Python | — | — |
+| frontend | Vue 3 + TS | — | 5173 (dev) |
+
+## Monorepo Structure
 
 ```
 shinkansen-commerce/
-├── proto/                          # Protocol Buffers (Source of Truth)
-│   ├── shared/                      # Shared types
-│   ├── product/                     # Product service definitions
-│   ├── order/                       # Order service definitions
-│   ├── payment/                     # Payment service definitions
-│   ├── konbini/                     # Konbini payments
-│   ├── points/                      # Point system
-│   ├── inventory/                   # Inventory service (Rust)
-│   ├── user/                        # User service
-│   ├── delivery/                    # Delivery service
-│   └── buf.yaml                     # Buf configuration
-│
-├── services/                       # Service Implementations
-│   ├── gateway/                     # Go - API Gateway
-│   ├── product-service/             # Go - Product management
-│   ├── order-service/               # Go - Order processing
-│   ├── payment-service/             # Go - Payment processing
-│   ├── inventory-service/           # Rust - High-performance inventory
-│   ├── user-service/                # Go - User management
-│   ├── delivery-service/            # Go - Delivery optimization
-│   ├── analytics-worker/            # Python - Analytics & AI
-│   └── shared/                     # Shared utilities
-│
-├── deploy/                         # Infrastructure
-│   ├── k8s/                        # Kubernetes manifests
-│   │   ├── base/                   # Base resources
-│   │   └── overlays/               # Environment-specific
-│   ├── docker-compose.yml           # Local development
-│   └── terraform/                  # IaC
-│
+├── proto/                          # Protocol Buffers (source of truth)
+├── gen/                            # Generated code (DO NOT EDIT)
+│   ├── proto/go/                   # Generated Go gRPC code
+│   └── proto/rust/                 # Generated Rust proto code
+├── services/
+│   ├── gateway/                    # REST↔gRPC gateway (Go)
+│   ├── product-service/            # Product catalog (Go)
+│   ├── order-service/              # Orders & cart (Go)
+│   ├── user-service/               # Auth & users (Go)
+│   ├── payment-service/            # Payments (Go)
+│   ├── inventory-service/          # Stock management (Rust)
+│   ├── delivery-service/           # Delivery & shipping (Go)
+│   ├── analytics-worker/           # Analytics (Python)
+│   └── frontend/                   # Customer & admin UI (Vue 3)
+├── deploy/
+│   └── k8s/base/                   # Kubernetes manifests (gateway + product only)
 ├── scripts/                        # Utility scripts
-├── docs/                          # Documentation
-├── Makefile                       # Build automation
-├── go.work                        # Go workspace
-└── README.md
+├── docs/                           # VitePress documentation site
+├── docker-compose.yml              # Local development (PG + Redis + all services)
+├── Makefile                        # Build automation
+├── go.work                         # Go workspace
+└── AGENTS.md                       # AI agent instructions
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- [Go 1.21+](https://golang.org/dl/)
+- [Go 1.24+](https://golang.org/dl/)
+- [Rust](https://rustup.rs/) (for inventory-service)
+- [Python 3.11+](https://www.python.org/) with [uv](https://docs.astral.sh/uv/) (for analytics-worker)
 - [Docker & Docker Compose](https://www.docker.com/products/docker-desktop)
 - [buf](https://docs.buf.build/installation)
 - [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html)
-- [Node.js 18+](https://nodejs.org/) (for some tools)
+- [Node.js 18+](https://nodejs.org/) (for frontend)
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/shinkansen-commerce.git
-cd shinkansen-commerce
-```
-
-### 2. Start Infrastructure
+### 1. Start Infrastructure
 
 ```bash
 make up
 ```
 
-This starts:
-- PostgreSQL 15
-- Redis 7
-- Kafka 3.5
-- MinIO
-- Jaeger (tracing)
-- Prometheus (metrics)
-- Grafana (dashboards)
+This starts PostgreSQL 15, Redis 7, and all microservices via Docker Compose.
 
-### 3. Generate Code
+### 2. Generate Code
 
 ```bash
 make gen
 ```
 
-This generates:
-- Go gRPC code from protobufs
-- SQL queries from sqlc
+Generates Go gRPC code, Rust proto code, sqlc typed queries, and OpenAPI docs from protobuf specs.
 
-### 4. Download Dependencies
+### 3. Build
 
 ```bash
-make init-deps
+make build-all        # Build all Go services to bin/
+cd services/frontend && npm install && npm run dev   # Start frontend dev server
 ```
 
-### 5. Build Services
+### 4. Run Tests
 
 ```bash
-make build
+make test             # All tests (Go + Rust)
+make lint             # All linters
+cd services/frontend && npm run build  # Verify frontend builds
 ```
 
-### 6. Run Services
+### 5. Create an Admin User
 
-```bash
-# Run individual services
-./bin/gateway
-./bin/product-service
+Register via the frontend or API, then promote in the database:
 
-# Or run all services in background
-make run-all
+```sql
+UPDATE users.users SET role = 'admin' WHERE email = 'your@email.com';
 ```
 
-### 7. Test
-
-```bash
-make test
-```
-
-## 📚 Available Commands
+## Available Commands
 
 ```bash
 # Infrastructure
-make up              # Start infrastructure (Docker Compose)
-make down            # Stop infrastructure
+make up              # Start all services (docker compose up)
+make down            # Stop all services
 make logs            # View logs
 
 # Code Generation
-make proto-gen       # Generate protobuf code
-make sqlc-gen        # Generate SQL code
-make gen             # Generate all code
-
-# Dependencies
-make init-deps       # Download all dependencies
+make gen             # Generate all code (proto + sqlc + openapi)
+make proto-gen       # Generate Go protobuf code only
+make sqlc-gen        # Generate sqlc code (product + order services)
 
 # Build
-make build           # Build all services
-make build-gateway   # Build gateway only
-make build-product   # Build product service only
+make build-all       # Build all Go services
+make build-inventory # Build Rust inventory service
 
 # Test
 make test            # Run all tests
 make test-coverage   # Run tests with coverage
+make test-integration # Run integration tests (requires docker)
 
 # Lint
-make lint            # Run all linters
+make lint            # Run all linters (Go + Rust + Python)
 
 # Database
-make db-migrate      # Run database migrations
-make db-rollback     # Rollback migrations
-
-# Docker
-make docker-build     # Build Docker images
-make docker-push     # Push Docker images
-
-# Kubernetes
-make k8s-apply       # Apply Kubernetes manifests
-make k8s-delete      # Delete Kubernetes resources
-
-# Clean
-make clean           # Clean build artifacts
-make clean-all       # Clean everything including generated code
+make db-migrate      # Run all migrations
+make db-rollback     # Rollback last migration per service
 ```
 
-## 🗺 Architecture
+## Frontend
 
-### High-Level Design
+The frontend (`services/frontend/`) is a Vue 3 + TypeScript application with:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      API Gateway (Go)                     │
-│              - Authentication & Authorization               │
-│              - Rate Limiting & Circuit Breakers           │
-│              - gRPC ↔ REST Translation                     │
-└─────────────────────────────────────────────────────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        ▼                   ▼                   ▼
-┌──────────────┐    ┌──────────────┐   ┌──────────────┐
-│   Product    │    │    Order     │   │   Payment    │
-│   Service    │    │   Service    │   │   Service    │
-│     (Go)     │    │    (Go)      │   │    (Go)      │
-├──────────────┤    ├──────────────┤   ├──────────────┤
-│• Products    │    │• Orders      │   │• Payments    │
-│• Categories  │    │• Cart        │   │• Konbini    │
-│• Search      │    │• Checkout    │   │• Points      │
-└──────────────┘    └──────────────┘   └──────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        ▼                   ▼                   ▼
-┌──────────────┐    ┌──────────────┐   ┌──────────────┐
-│   Inventory  │    │     User     │   │  Delivery    │
-│   Service    │    │   Service    │   │   Service    │
-│    (Rust)    │    │    (Go)      │   │    (Go)      │
-├──────────────┤    ├──────────────┤   ├──────────────┤
-│• Stock Mgmt  │    │• Auth        │   │• Same-day    │
-│• Allocation  │    │• Profile     │   │• Tracking    │
-│• Reservation │    │• Addresses   │   │• Logistics   │
-└──────────────┘    └──────────────┘   └──────────────┘
-                            │
-                            ▼
-                  ┌──────────────────┐
-                  │  Analytics      │
-                  │   Service      │
-                  │   (Python)     │
-                  ├──────────────────┤
-                  │• Reporting     │
-                  │• AI Insights   │
-                  │• Batch Jobs    │
-                  └──────────────────┘
-```
-
-### Data Flow
-
-1. **Product Browsing** (Read-Heavy)
-   ```
-   Client → Gateway → Product Service → Redis Cache → PostgreSQL
-   ```
-
-2. **Order Placement** (Write-Heavy, ACID)
-   ```
-   Client → Gateway → Order Service
-     ├── Lock Inventory (Inventory Service - Rust)
-     ├── Create Order
-     ├── Process Payment (Payment Service)
-     ├── Deduct Points (User Service)
-     └── Publish Event (Kafka)
-   ```
-
-3. **Konbini Payment Flow**
-   ```
-   Client → Gateway → Payment Service
-     ├── Generate Payment Slip (PDF)
-     ├── Send to User Email/Show in UI
-     ├── Wait for Webhook from Payment Provider
-     ├── Validate & Update Order Status
-     └── Publish Payment Completed Event
-   ```
-
-## 🇯🇵 Japan-Specific Features
-
-### Konbini Payments
-- 7-Eleven (セブン-イレブン)
-- Lawson (ローソン)
-- FamilyMart (ファミリーマート)
-- Ministop (ミニストップ)
-- Seicomart (セイコーマート)
-
-### Point System
-- Multi-vendor point ecosystem
-- Point redemption at checkout
-- Point expiration management
-- Cross-vendor point sharing
-
-### Same-day Delivery
-- Geospatial queries (PostGIS)
-- Delivery slot management
-- Real-time inventory check
-- Tracking integration
-
-## 📊 Observability
-
-### Metrics
-- **Prometheus**: Metrics collection
-- **Grafana**: Visualization dashboards
-- Port: `http://localhost:3000` (admin/admin)
-
-### Tracing
-- **Jaeger**: Distributed tracing
-- Port: `http://localhost:16686`
-
-### Logs
-- Structured JSON logging with request IDs
-- Centralized log aggregation
-
-## 🧪 Testing
+- **Customer pages**: Home, product browsing, search, cart, 4-step checkout, order tracking
+- **Account pages**: Profile, address management, order history
+- **Admin pages**: Dashboard, product CRUD, order management, inventory, delivery slots, shipments, payments
+- **Bilingual i18n**: English + Japanese
+- **Role-aware**: Admin link and `/admin/*` routes only accessible when `role === "admin"`
+- **Client-side cart**: localStorage-based (no backend cart API)
 
 ```bash
-# Unit tests
-make test
-
-# Tests with coverage
-make test-coverage
-
-# Integration tests (requires running infrastructure)
-make test-integration
+cd services/frontend
+npm install
+npm run dev          # Dev server at :5173, proxies /v1 to :8080
+npm run build        # Production build
 ```
 
-## 🚢 Deployment
+## Database
 
-### Docker Compose (Local Development)
+Each service owns a PostgreSQL schema (`catalog`, `orders`, `users`, `payments`, `inventory`, `delivery`) in a single `shinkansen` database.
+
+Default local connection: `postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen?sslmode=disable`
+
+## Testing
+
+```bash
+make test                           # Unit tests (Go + Rust)
+make test-integration               # Integration tests (starts docker-compose)
+cd services/frontend && npm run build  # Frontend typecheck + build
+cd services/analytics-worker && uv run pytest  # Python tests
+```
+
+## Deployment
+
+### Docker Compose (Local)
+
 ```bash
 make up
-make build
-make docker-build
 ```
 
-### Kubernetes (Production)
-```bash
-# Apply base manifests
-make k8s-apply
-
-# For specific environment
-kubectl apply -k deploy/k8s/overlays/production
-```
-
-### Terraform (Infrastructure)
-```bash
-cd deploy/terraform
-terraform init
-terraform plan
-terraform apply
-```
-
-## 🚀 Quick Start
-
-**Get the platform running in 5 minutes!**
+### Kubernetes (Partial)
 
 ```bash
-# Start all services (PostgreSQL, Redis, 7 microservices, Gateway)
-make up
-
-# Run integration tests
-make test-integration
-
-# Stop services
-make down
+make k8s-apply       # Apply manifests for gateway + product-service
 ```
 
-📖 **See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions**
+Note: Only gateway and product-service have K8s manifests. Other services need manifests added to `deploy/k8s/base/k8s.yaml`.
 
-## 📖 Documentation
+## Documentation
 
-- [Quick Start Guide](QUICKSTART.md) - Get started in 5 minutes
 - [Architecture Overview](docs/architecture/overview.md)
-- [High-Level Design](docs/architecture/hld.md)
-- [Low-Level Design](docs/architecture/lld.md)
+- [High-Level Design](docs/architecture/high-level-design.md)
+- [Low-Level Design](docs/architecture/low-level-design.md)
 - [API Documentation](docs/api/)
-- [Deployment Guide](docs/deployment/)
 - [Development Guide](docs/development/)
 - [Runbooks](docs/runbooks/)
 
-## 🤝 Contributing
+## CI
 
-This is a portfolio project demonstrating:
-- System architecture skills
-- Polyglot programming
-- DevOps & infrastructure as code
-- Japanese e-commerce domain knowledge
-- Production-grade practices
+`.github/workflows/ci-cd.yml` runs on push/PR to `main` and `develop`. The active pipeline runs lint (Go, Rust, Python) and proto format checks. Test and build jobs are commented out.
 
-## 📝 License
+## License
 
-This project is licensed under the MIT License.
-
-## 👨‍💻 Portfolio
-
-Built as a demonstration of:
-- **Senior Backend Engineer** skills
-- **Japan-focused** e-commerce domain expertise
-- **Polyglot** development (Go, Rust, Python)
-- **Microservices** architecture
-- **Kubernetes** orchestration
-- **CI/CD** automation
-
-## 🙏 Acknowledgments
-
-Inspired by:
-- [Saleor](https://saleor.io/)
-- [Magento](https://magento.com/)
-- [Rakuten](https://global.rakuten.com/)
-- [PayPay](https://paypay.ne.jp/)
-- [Buf](https://buf.build/)
-- [sqlc](https://sqlc.dev/)
+MIT License. Copyright 2026 Ba'tiar Afas Rahmamulia.
