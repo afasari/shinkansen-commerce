@@ -15,6 +15,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -70,6 +73,11 @@ func (s *OrderService) SetStateMachine(stateMachine *OrderStateMachine) {
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.CreateOrderResponse, error) {
+	ctx, span := otel.Tracer("order-service").Start(ctx, "OrderService.CreateOrder",
+		trace.WithAttributes(attribute.String("order.user_id", req.UserId)),
+	)
+	defer span.End()
+
 	s.logger.Info("Creating order", zap.String("user_id", req.UserId))
 
 	if req.UserId == "" {
@@ -191,6 +199,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 }
 
 func (s *OrderService) GetOrder(ctx context.Context, req *orderpb.GetOrderRequest) (*orderpb.GetOrderResponse, error) {
+	ctx, span := otel.Tracer("order-service").Start(ctx, "OrderService.GetOrder",
+		trace.WithAttributes(attribute.String("order.id", req.OrderId)),
+	)
+	defer span.End()
+
 	s.logger.Info("Getting order", zap.String("order_id", req.OrderId))
 
 	if req.OrderId == "" {
@@ -274,6 +287,14 @@ func (s *OrderService) ListOrders(ctx context.Context, req *orderpb.ListOrdersRe
 }
 
 func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderpb.UpdateOrderStatusRequest) (*sharedpb.Empty, error) {
+	ctx, span := otel.Tracer("order-service").Start(ctx, "OrderService.UpdateOrderStatus",
+		trace.WithAttributes(
+			attribute.String("order.id", req.OrderId),
+			attribute.String("order.new_status", req.Status.String()),
+		),
+	)
+	defer span.End()
+
 	s.logger.Info("Updating order status", zap.String("order_id", req.OrderId), zap.String("status", req.Status.String()))
 
 	if req.OrderId == "" {
@@ -334,6 +355,11 @@ func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderpb.Updat
 }
 
 func (s *OrderService) CancelOrder(ctx context.Context, req *orderpb.CancelOrderRequest) (*sharedpb.Empty, error) {
+	ctx, span := otel.Tracer("order-service").Start(ctx, "OrderService.CancelOrder",
+		trace.WithAttributes(attribute.String("order.id", req.OrderId)),
+	)
+	defer span.End()
+
 	s.logger.Info("Cancelling order", zap.String("order_id", req.OrderId))
 
 	orderID := pgutil.ToPG(uuid.MustParse(req.OrderId))

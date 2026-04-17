@@ -99,11 +99,45 @@ Each service owns a PostgreSQL schema (e.g., `catalog`, `orders`, `users`, `paym
 
 ```bash
 make db-migrate                          # All services
+make db-seed                             # Seed test data (delivery zone, products, stock)
 make db-rollback                         # Rollback last migration per service
 cd services/<service> && migrate -path internal/migrations -database "$DATABASE_URL" up
 ```
 
 Default local DATABASE_URL: `postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen?sslmode=disable`
+
+### Seed Data
+
+`make db-seed` runs `scripts/seed-data.sql` which inserts:
+- 1 delivery zone (Kanto, `a0000000-...`)
+- 12 delivery slots (4/day x 3 days, `b0000000-...`)
+- 3 categories (Electronics, Clothing, Food & Drink, `c0000000-...`)
+- 3 products (¥2500–¥5800, `d0000000-...`)
+- 3 stock items in warehouse `f0000000-...` (30–100 units each)
+
+Frontend constants `DEFAULT_WAREHOUSE_ID` and `DEFAULT_DELIVERY_ZONE_ID` in `services/frontend/src/utils/constants.ts` match these seed IDs.
+
+## Checkout Flow
+
+The frontend orchestrates the full checkout via `services/frontend/src/stores/checkout.ts` `placeOrder()`:
+
+1. `POST /v1/orders` → creates order in PENDING status (backend validates stock via product-service, calculates 10% tax)
+2. `POST /v1/inventory/reserve` → reserves stock for the order (requires authentication)
+3. `POST /v1/delivery/slots/{slot_id}/reserve` → reserves delivery slot (optional, if slot selected)
+4. `POST /v1/payments` → creates payment record (PENDING)
+5. `POST /v1/payments/{payment_id}/process` → processes payment (CC/PayPay/Rakuten auto-complete; Konbini stays PROCESSING)
+6. If payment COMPLETED: `POST /v1/orders/{order_id}/status` with CONFIRMED
+7. On any failure: rollback (release stock reservation → cancel order)
+
+The frontend calculates tax (10%) and points discount client-side. The order-service also calculates tax server-side, so both should match.
+
+### Proto Enum Serialization
+
+The gateway uses Go's `encoding/json` (not `protojson`) for REST↔gRPC translation. Proto enums serialize as **numbers** (e.g., `"status": 1` for PENDING, `"payment_method": 1` for CREDIT_CARD). The frontend TypeScript enums in `types/order.ts`, `types/payment.ts`, `types/delivery.ts`, `types/inventory.ts` use numeric values matching the proto enum numbers.
+
+**Exception**: `POST /v1/payments/{id}/process` returns `status` as a string (e.g., `"PAYMENT_STATUS_COMPLETED"`) because the gateway handler manually calls `resp.Status.String()`. The checkout store handles both formats.
+
+Label maps for display are in `services/frontend/src/utils/constants.ts`: `ORDER_STATUS_LABELS`, `PAYMENT_METHOD_LABELS`, `PAYMENT_STATUS_LABELS`, `SHIPMENT_STATUS_LABELS`, `MOVEMENT_TYPE_LABELS`.
 
 ## Integration Tests
 
@@ -143,7 +177,37 @@ cd services/inventory-service && cargo fmt --all -- --check        # Format chec
 
 ## Infrastructure
 
-`docker-compose.yml` starts PostgreSQL 15, Redis 7, and all services. No Kafka/MinIO/Jaeger/Prometheus/Grafana in the compose file.
+`docker-compose.yml` starts PostgreSQL 15, Redis 7, all services, and the observability stack (OTel Collector, Prometheus, Jaeger, Loki, Grafana).
+
+## Observability
+
+Distributed tracing with OpenTelemetry. The trace flow:
+
+```
+HTTP Request → [otelhttp middleware] → Gateway handler → [otelgrpc client] → gRPC service → [otelgrpc server]
+```
+
+### Gateway (Go)
+- `otelhttp.NewHandler()` wraps the HTTP mux — creates root spans for all requests
+- `otelgrpc.NewClientHandler()` on all 6 gRPC client connections — propagates trace context to backend services
+- Files: `services/gateway/cmd/gateway/main.go`, `services/gateway/internal/telemetry/telemetry.go`
+
+### Go Backend Services
+- `otelgrpc.NewServerHandler()` on all gRPC servers — extracts trace context from incoming metadata
+- `internal/telemetry/telemetry.go` — W3C TraceContext propagator + OTLP gRPC exporter
+
+### Order-Service → Product-Service
+- `otelgrpc.NewClientHandler()` on the product-service gRPC client dial options
+- File: `services/order-service/cmd/order-service/main.go`
+
+### Inventory-Service (Rust)
+- `OtelGrpcService` tower middleware extracts W3C trace context from gRPC metadata headers
+- `#[instrument]` annotations on service methods create child spans linked to the propagated parent
+- Uses `http` v0.2 (matching tonic 0.11's dependency)
+- File: `services/inventory-service/src/otel_middleware.rs`, `services/inventory-service/src/service.rs`
+
+### Gateway REST↔gRPC Translation
+The gateway uses `encoding/json` (not `protojson`) for REST↔gRPC translation. This means proto well-known types (`Timestamp`, `Int64Value`, `StringValue`) cannot be decoded from primitive JSON values. Handlers that receive these types decode into `map[string]interface{}` first, then manually construct the proto fields. See `inventory.go` `reserveStock()` and `order.go` `createOrder()` for examples.
 
 `deploy/k8s/base/k8s.yaml` has Deployment, Service, ConfigMap, Secret, and HPA manifests for gateway and product-service only. Other services need K8s manifests added.
 

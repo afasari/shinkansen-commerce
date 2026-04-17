@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/order'
 import { formatPrice, formatDate, formatDateTime } from '@/utils/format'
-import { OrderStatus, ORDER_STATUS_TRANSITIONS, CANCELLABLE_STATUSES } from '@/utils/constants'
+import { OrderStatus, ORDER_STATUS_TRANSITIONS, CANCELLABLE_STATUSES, ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS } from '@/utils/constants'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppModal from '@/components/common/AppModal.vue'
 
@@ -67,7 +67,7 @@ async function handleCancel() {
         <div class="flex flex-wrap gap-2">
           <button v-for="status in availableTransitions" :key="status" @click="handleStatusUpdate(status)" :disabled="updating"
             class="btn-secondary text-sm">
-            {{ status.replace('ORDER_STATUS_', '').replace(/_/g, ' ') }}
+            {{ ORDER_STATUS_LABELS[status] || status }}
           </button>
           <button v-if="canCancel" @click="showCancelModal = true" class="btn-danger text-sm">{{ t('order.cancelOrder') }}</button>
         </div>
@@ -97,7 +97,7 @@ async function handleCancel() {
 
           <div class="card p-4">
             <h2 class="font-semibold text-gray-900 mb-2">{{ t('order.paymentMethod') }}</h2>
-            <p class="text-sm text-gray-600">{{ order.payment_method.replace('PAYMENT_METHOD_', '').replace(/_/g, ' ') }}</p>
+            <p class="text-sm text-gray-600">{{ PAYMENT_METHOD_LABELS[order.payment_method] || order.payment_method }}</p>
           </div>
         </div>
 

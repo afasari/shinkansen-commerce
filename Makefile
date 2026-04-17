@@ -1,4 +1,7 @@
-.PHONY: help up down logs ps proto-gen proto-openapi-gen proto-lint proto-format sqlc-gen docs-gen docs-gen-api gen init-deps init-go-deps init-python-deps uv-install uv-sync uv-add uv-add-dev uv-run build-all build build-gateway build-product build-order build-user build-payment build-inventory build-delivery load-test benchmark-cache build-python test test-coverage test-integration test-python lint lint-python format-python db-migrate db-rollback docker-build docker-push k8s-apply k8s-delete k8s-logs clean clean-all proto-watch install-git-hooks
+.PHONY: help up down logs ps proto-gen proto-openapi-gen proto-lint proto-format sqlc-gen docs-gen docs-gen-api gen init-deps init-go-deps init-python-deps uv-install uv-sync uv-add uv-add-dev uv-run build-all build build-gateway build-product build-order build-user build-payment build-inventory build-delivery load-test benchmark-cache build-python test test-coverage test-integration test-python lint lint-python format-python db-migrate db-seed db-rollback db-rollback-all db-reset docker-build docker-push k8s-apply k8s-delete k8s-logs clean clean-all proto-watch install-git-hooks
+
+DATABASE_URL ?= postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen?sslmode=disable
+PSQL = docker exec -i shinkansen-postgres psql -U shinkansen -d shinkansen
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -275,22 +278,55 @@ format-python: uv-install ## Format Python code
 	cd services/analytics-worker && uv run --dev ruff format .
 
 # --- Database ---
+MIGRATE_DB = $(DATABASE_URL)
+MIGRATE_PRODUCT_DB = $(subst ?sslmode,?x-migrations-table=product_migrations&sslmode,$(DATABASE_URL))
+MIGRATE_ORDER_DB = $(subst ?sslmode,?x-migrations-table=order_migrations&sslmode,$(DATABASE_URL))
+MIGRATE_PAYMENT_DB = $(subst ?sslmode,?x-migrations-table=payment_migrations&sslmode,$(DATABASE_URL))
+MIGRATE_USER_DB = $(subst ?sslmode,?x-migrations-table=user_migrations&sslmode,$(DATABASE_URL))
+MIGRATE_DELIVERY_DB = $(subst ?sslmode,?x-migrations-table=delivery_migrations&sslmode,$(DATABASE_URL))
+
 db-migrate: ## Run database migrations
 	@echo "🗄️  Running database migrations..."
-	cd services/product-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
-	cd services/order-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
-	cd services/payment-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
-	cd services/user-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
-	cd services/delivery-service && migrate -path internal/migrations -database "$$DATABASE_URL" up
-	cd services/inventory-service && cargo run --release
+	cd services/product-service && migrate -path internal/migrations -database "$(MIGRATE_PRODUCT_DB)" up
+	cd services/order-service && migrate -path internal/migrations -database "$(MIGRATE_ORDER_DB)" up
+	cd services/payment-service && migrate -path internal/migrations -database "$(MIGRATE_PAYMENT_DB)" up
+	cd services/user-service && migrate -path internal/migrations -database "$(MIGRATE_USER_DB)" up
+	cd services/delivery-service && migrate -path internal/migrations -database "$(MIGRATE_DELIVERY_DB)" up
+	cat services/inventory-service/migrations/001_create_inventory_schema.sql | $(PSQL)
+	@echo "✅ Migrations complete"
 
-db-rollback: ## Rollback database migrations
-	@echo "⏪ Rolling back database migrations..."
-	cd services/product-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
-	cd services/order-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
-	cd services/payment-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
-	cd services/user-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
-	cd services/delivery-service && migrate -path internal/migrations -database "$$DATABASE_URL" down 1
+db-seed: ## Seed database with test data
+	@echo "🌱 Seeding database..."
+	cat scripts/seed-data.sql | $(PSQL)
+	@echo "✅ Database seeded"
+
+db-rollback: ## Rollback last migration per service
+	@echo "⏪ Rolling back last migration per service..."
+	cd services/product-service && migrate -path internal/migrations -database "$(MIGRATE_PRODUCT_DB)" down 1
+	cd services/order-service && migrate -path internal/migrations -database "$(MIGRATE_ORDER_DB)" down 1
+	cd services/payment-service && migrate -path internal/migrations -database "$(MIGRATE_PAYMENT_DB)" down 1
+	cd services/user-service && migrate -path internal/migrations -database "$(MIGRATE_USER_DB)" down 1
+	cd services/delivery-service && migrate -path internal/migrations -database "$(MIGRATE_DELIVERY_DB)" down 1
+	@echo "✅ Rollback complete"
+
+db-rollback-all: ## Rollback ALL migrations (drops all service tables)
+	@echo "⏪ Rolling back ALL migrations..."
+	cd services/product-service && migrate -path internal/migrations -database "$(MIGRATE_PRODUCT_DB)" down -all
+	cd services/order-service && migrate -path internal/migrations -database "$(MIGRATE_ORDER_DB)" down -all
+	cd services/payment-service && migrate -path internal/migrations -database "$(MIGRATE_PAYMENT_DB)" down -all
+	cd services/user-service && migrate -path internal/migrations -database "$(MIGRATE_USER_DB)" down -all
+	cd services/delivery-service && migrate -path internal/migrations -database "$(MIGRATE_DELIVERY_DB)" down -all
+	$(PSQL) -c "DROP SCHEMA IF EXISTS inventory CASCADE; CREATE SCHEMA inventory;"
+	@echo "✅ All migrations rolled back"
+
+db-reset: ## Drop all data and re-migrate + seed
+	@echo "💣 Resetting database..."
+	$(PSQL) -c "DROP SCHEMA IF EXISTS catalog, orders, users, payments, inventory, delivery CASCADE;"
+	$(PSQL) -c "DROP TABLE IF EXISTS product_migrations, order_migrations, payment_migrations, user_migrations, delivery_migrations, schema_migrations;"
+	$(PSQL) -c "CREATE SCHEMA catalog; CREATE SCHEMA orders; CREATE SCHEMA users; CREATE SCHEMA payments; CREATE SCHEMA inventory; CREATE SCHEMA delivery;"
+	@echo "🗑️  Dropped all schemas, re-running migrations..."
+	$(MAKE) db-migrate
+	$(MAKE) db-seed
 
 # --- Docker ---
 docker-build: ## Build Docker images

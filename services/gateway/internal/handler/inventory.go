@@ -143,18 +143,36 @@ func (h *InventoryHandler) updateStock(w http.ResponseWriter, r *http.Request, c
 }
 
 func (h *InventoryHandler) reserveStock(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	if !isAdmin(r) {
-		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+	if !isAuthenticated(r) {
+		http.Error(w, "Unauthorized: authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	var req inventorypb.ReserveStockRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var raw map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	resp, err := h.client.ReserveStock(ctx, &req)
+	req := &inventorypb.ReserveStockRequest{
+		OrderId:   getString(raw, "order_id"),
+		ExpiresAt: parseTimestamp(raw, "expires_at"),
+	}
+
+	if items, ok := raw["items"].([]interface{}); ok {
+		for _, item := range items {
+			if m, ok := item.(map[string]interface{}); ok {
+				req.Items = append(req.Items, &inventorypb.StockReservationItem{
+					ProductId:   getString(m, "product_id"),
+					VariantId:   getString(m, "variant_id"),
+					WarehouseId: getString(m, "warehouse_id"),
+					Quantity:    int32(getFloat(m, "quantity")),
+				})
+			}
+		}
+	}
+
+	resp, err := h.client.ReserveStock(ctx, req)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -164,8 +182,8 @@ func (h *InventoryHandler) reserveStock(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *InventoryHandler) releaseStock(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	if !isAdmin(r) {
-		http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+	if !isAuthenticated(r) {
+		http.Error(w, "Unauthorized: authentication required", http.StatusUnauthorized)
 		return
 	}
 

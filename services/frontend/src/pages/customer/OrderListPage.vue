@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/order'
 import { formatPrice, formatDate } from '@/utils/format'
-import { OrderStatus, ORDER_STATUS_LIST } from '@/utils/constants'
+import { OrderStatus, ORDER_STATUS_LIST, ORDER_STATUS_LABELS } from '@/utils/constants'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
 
@@ -42,7 +42,7 @@ function goToPage(p: number) {
       <h1 class="text-2xl font-bold text-gray-900">{{ t('order.orderHistory') }}</h1>
       <select v-model="statusFilter" @change="page = 1; loadOrders()" class="input-field w-auto text-sm">
         <option value="">{{ t('common.all') }} {{ t('order.status') }}</option>
-        <option v-for="s in ORDER_STATUS_LIST" :key="s" :value="s">{{ s.replace('ORDER_STATUS_', '').replace(/_/g, ' ') }}</option>
+        <option v-for="s in ORDER_STATUS_LIST" :key="s" :value="s">{{ ORDER_STATUS_LABELS[s] || s }}</option>
       </select>
     </div>
 

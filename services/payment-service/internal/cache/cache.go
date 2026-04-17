@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -44,7 +45,9 @@ func NewRedisClient(url string) *redis.Client {
 			DB:       0,
 		}
 	}
-	return redis.NewClient(opts)
+	client := redis.NewClient(opts)
+	_ = redisotel.InstrumentTracing(client)
+	return client
 }
 
 func NewRedisCache(client *redis.Client) *RedisCache {

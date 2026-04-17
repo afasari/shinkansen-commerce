@@ -114,18 +114,74 @@ func (h *OrderHandler) listOrders(w http.ResponseWriter, r *http.Request, ctx co
 }
 
 func (h *OrderHandler) createOrder(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	var req orderpb.CreateOrderRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// Decode JSON into a map to handle proto wrapper types
+	var raw map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	// Build the proto request manually
+	req := &orderpb.CreateOrderRequest{}
+
+	// Set user_id from JWT if authenticated, otherwise use the one from request
 	userID := r.Context().Value(middleware.UserIDKey)
 	if userID != nil {
 		req.UserId = userID.(string)
+	} else if uid := getString(raw, "user_id"); uid != "" {
+		req.UserId = uid
 	}
 
-	resp, err := h.client.CreateOrder(ctx, &req)
+	// Handle points_to_apply (Int64Value wrapper)
+	if pts := getString(raw, "points_to_apply"); pts != "" {
+		if v, err := strconv.ParseInt(pts, 10, 64); err == nil {
+			req.PointsToApply = &wrapperspb.Int64Value{Value: v}
+		}
+	}
+
+	// Handle delivery_slot_id (StringValue wrapper)
+	if slotID := getString(raw, "delivery_slot_id"); slotID != "" {
+		req.DeliverySlotId = &wrapperspb.StringValue{Value: slotID}
+	}
+
+	// Parse payment_method (enum — may be string name or numeric)
+	if pm := getString(raw, "payment_method"); pm != "" {
+		if v, ok := orderpb.PaymentMethod_value[pm]; ok {
+			req.PaymentMethod = orderpb.PaymentMethod(v)
+		} else if n, err := strconv.Atoi(pm); err == nil {
+			req.PaymentMethod = orderpb.PaymentMethod(n)
+		}
+	} else if v := getFloat(raw, "payment_method"); v > 0 {
+		req.PaymentMethod = orderpb.PaymentMethod(int32(v))
+	}
+
+	// Parse shipping_address
+	if addr, ok := raw["shipping_address"].(map[string]interface{}); ok {
+		req.ShippingAddress = &orderpb.ShippingAddress{
+			Name:         getString(addr, "name"),
+			Phone:        getString(addr, "phone"),
+			PostalCode:   getString(addr, "postal_code"),
+			Prefecture:   getString(addr, "prefecture"),
+			City:         getString(addr, "city"),
+			AddressLine1: getString(addr, "address_line1"),
+			AddressLine2: getString(addr, "address_line2"),
+		}
+	}
+
+	// Parse items
+	if items, ok := raw["items"].([]interface{}); ok {
+		for _, item := range items {
+			if m, ok := item.(map[string]interface{}); ok {
+				req.Items = append(req.Items, &orderpb.CreateOrderItem{
+					ProductId: getString(m, "product_id"),
+					VariantId: getString(m, "variant_id"),
+					Quantity:  int32(getFloat(m, "quantity")),
+				})
+			}
+		}
+	}
+
+	resp, err := h.client.CreateOrder(ctx, req)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -174,6 +230,12 @@ func (h *OrderHandler) cancelOrder(w http.ResponseWriter, r *http.Request, ctx c
 	}
 
 	req := &orderpb.CancelOrderRequest{OrderId: orderID}
+	var body struct {
+		Reason string `json:"reason"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
+		req.Reason = body.Reason
+	}
 	_, err := h.client.CancelOrder(ctx, req)
 	if err != nil {
 		handleError(w, err)

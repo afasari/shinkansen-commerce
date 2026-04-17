@@ -9,6 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -41,6 +44,11 @@ func isDuplicateKeyError(err error) bool {
 }
 
 func (s *PaymentService) CreatePayment(ctx context.Context, req *paymentpb.CreatePaymentRequest) (*paymentpb.CreatePaymentResponse, error) {
+	ctx, span := otel.Tracer("payment-service").Start(ctx, "PaymentService.CreatePayment",
+		trace.WithAttributes(attribute.String("payment.order_id", req.OrderId)),
+	)
+	defer span.End()
+
 	s.logger.Info("Creating payment", zap.String("order_id", req.OrderId))
 
 	orderID, err := uuid.Parse(req.OrderId)
@@ -102,6 +110,11 @@ func (s *PaymentService) GetPayment(ctx context.Context, req *paymentpb.GetPayme
 }
 
 func (s *PaymentService) ProcessPayment(ctx context.Context, req *paymentpb.ProcessPaymentRequest) (*paymentpb.ProcessPaymentResponse, error) {
+	ctx, span := otel.Tracer("payment-service").Start(ctx, "PaymentService.ProcessPayment",
+		trace.WithAttributes(attribute.String("payment.id", req.PaymentId)),
+	)
+	defer span.End()
+
 	s.logger.Info("Processing payment", zap.String("payment_id", req.PaymentId))
 
 	paymentID, err := uuid.Parse(req.PaymentId)

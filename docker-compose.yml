@@ -31,6 +31,61 @@ services:
       timeout: 5s
       retries: 5
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: shinkansen-otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+    depends_on:
+      - jaeger
+      - prometheus
+      - loki
+
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: shinkansen-prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    container_name: shinkansen-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    ports:
+      - "16686:16686"
+      - "14250:14250"
+
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: shinkansen-loki
+    ports:
+      - "3100:3100"
+
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: shinkansen-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+
   product-service:
     build:
       context: .
@@ -41,6 +96,8 @@ services:
       METRICS_SERVER_ADDRESS: :8091
       DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
       REDIS_URL: redis://redis:6379
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_SERVICE_NAME: product-service
     ports:
       - "9091:9091"
       - "8091:8091"
@@ -49,6 +106,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8091/health"]
       interval: 10s
@@ -66,6 +125,8 @@ services:
       DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
       REDIS_URL: redis://redis:6379
       PRODUCT_SERVICE_GRPC_ADDRESS: product-service:9091
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_SERVICE_NAME: order-service
     ports:
       - "9092:9092"
       - "8092:8092"
@@ -76,6 +137,8 @@ services:
         condition: service_healthy
       product-service:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8092/health"]
       interval: 10s
@@ -95,6 +158,8 @@ services:
       JWT_SECRET: your-jwt-secret-change-in-production
       ACCESS_TOKEN_DURATION: 3600
       REFRESH_TOKEN_DURATION: 86400
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_SERVICE_NAME: user-service
     ports:
       - "9103:9103"
       - "8103:8103"
@@ -103,6 +168,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8103/health"]
       interval: 10s
@@ -119,6 +186,8 @@ services:
       METRICS_SERVER_ADDRESS: :8104
       DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
       REDIS_URL: redis://redis:6379
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_SERVICE_NAME: payment-service
     ports:
       - "9104:9104"
       - "8104:8104"
@@ -127,6 +196,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8104/health"]
       interval: 10s
@@ -142,12 +213,16 @@ services:
       GRPC_SERVER_ADDRESS: :9105
       METRICS_SERVER_ADDRESS: :8105
       DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: inventory-service
     ports:
       - "9105:9105"
       - "8105:8105"
     depends_on:
       postgres:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8105/health"]
       interval: 10s
@@ -163,12 +238,16 @@ services:
       GRPC_SERVER_ADDRESS: :9106
       METRICS_SERVER_ADDRESS: :8106
       DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_SERVICE_NAME: delivery-service
     ports:
       - "9106:9106"
       - "8106:8106"
     depends_on:
       postgres:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8106/health"]
       interval: 10s
@@ -189,6 +268,8 @@ services:
       INVENTORY_SERVICE_GRPC_ADDRESS: inventory-service:9105
       DELIVERY_SERVICE_GRPC_ADDRESS: delivery-service:9106
       JWT_SECRET: your-jwt-secret-change-in-production
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_SERVICE_NAME: gateway
     ports:
       - "8080:8080"
     depends_on:
@@ -204,6 +285,8 @@ services:
         condition: service_healthy
       delivery-service:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
@@ -218,15 +301,20 @@ services:
     environment:
       DATABASE_URL: postgres://shinkansen:shinkansen_dev_password@postgres:5432/shinkansen?sslmode=disable
       REDIS_URL: redis://redis:6379
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: analytics-worker
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
 
 volumes:
   postgres_data:
   redis_data:
+  prometheus_data:
 
 networks:
   default:

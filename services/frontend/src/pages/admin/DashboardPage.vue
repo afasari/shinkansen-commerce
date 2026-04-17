@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useProductStore } from '@/stores/product'
 import { useOrderStore } from '@/stores/order'
+import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from '@/utils/constants'
 import { formatPrice, formatDate } from '@/utils/format'
 import { useRouter } from 'vue-router'
 import {
@@ -144,11 +145,9 @@ const quickLinks = [
             <div class="text-right">
               <p class="text-sm font-semibold">{{ formatPrice(order.total_amount) }}</p>
               <span :class="[
-                order.status === 'ORDER_STATUS_DELIVERED' ? 'bg-green-100 text-green-700' :
-                order.status === 'ORDER_STATUS_CANCELLED' ? 'bg-red-100 text-red-700' :
-                'bg-yellow-100 text-yellow-700',
+                ORDER_STATUS_COLORS[order.status] || 'bg-yellow-100 text-yellow-700',
                 'text-xs px-2 py-0.5 rounded-full font-medium'
-              ]">{{ order.status.replace('ORDER_STATUS_', '').replace(/_/g, ' ') }}</span>
+              ]">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
             </div>
           </div>
           <div v-if="orderStore.orders.length === 0" class="px-4 py-8 text-center">

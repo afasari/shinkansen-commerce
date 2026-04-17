@@ -11,17 +11,16 @@ This module handles:
 import asyncio
 import json
 import logging
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
 from decimal import Decimal
+from typing import Any
 
-import click
-from aiokafka import AIOKafkaConsumer
 import asyncpg
+import click
 import redis.asyncio as aioredis
-from pydantic import BaseModel, Field
-
+from aiokafka import AIOKafkaConsumer
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +33,13 @@ class OrderEvent(BaseModel):
     user_id: str
     status: str
     timestamp: datetime
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 
 class ProductViewEvent(BaseModel):
     event_id: str
     product_id: str
-    user_id: Optional[str]
+    user_id: str | None
     session_id: str
     timestamp: datetime
 
@@ -54,7 +53,7 @@ class DailySalesMetrics:
     total_items_sold: int
     unique_customers: int
     average_order_value: Decimal
-    payment_method_breakdown: Dict[str, int]
+    payment_method_breakdown: dict[str, int]
 
 
 @dataclass
@@ -75,10 +74,10 @@ class UserBehaviorMetrics:
     user_id: str
     total_orders: int
     total_spent: Decimal
-    favorite_categories: List[str]
+    favorite_categories: list[str]
     average_order_value: Decimal
-    last_order_date: Optional[datetime.date]
-    days_since_last_order: Optional[int]
+    last_order_date: datetime.date | None
+    days_since_last_order: int | None
 
 
 class AnalyticsWorker:
@@ -88,14 +87,14 @@ class AnalyticsWorker:
         self,
         postgres_url: str,
         redis_url: str,
-        kafka_brokers: List[str],
+        kafka_brokers: list[str],
     ):
         self.postgres_url = postgres_url
         self.redis_url = redis_url
         self.kafka_brokers = kafka_brokers
-        self.db_pool: Optional[asyncpg.Pool] = None
-        self.redis: Optional[aioredis.Redis] = None
-        self.consumer: Optional[AIOKafkaConsumer] = None
+        self.db_pool: asyncpg.Pool | None = None
+        self.redis: aioredis.Redis | None = None
+        self.consumer: AIOKafkaConsumer | None = None
         self.running = False
 
     async def start(self):
@@ -112,12 +111,12 @@ class AnalyticsWorker:
 
         # Initialize Kafka consumer
         self.consumer = AIOKafkaConsumer(
-            'orders',
-            'product-views',
-            'user-events',
-            bootstrap_servers=','.join(self.kafka_brokers),
-            group_id='analytics-worker',
-            auto_offset_reset='earliest',
+            "orders",
+            "product-views",
+            "user-events",
+            bootstrap_servers=",".join(self.kafka_brokers),
+            group_id="analytics-worker",
+            auto_offset_reset="earliest",
         )
         await self.consumer.start()
         logger.info("Connected to Kafka")
@@ -156,15 +155,15 @@ class AnalyticsWorker:
         """Handle a single Kafka message"""
         try:
             topic = msg.topic
-            value = json.loads(msg.value.decode('utf-8'))
+            value = json.loads(msg.value.decode("utf-8"))
 
-            if topic == 'orders':
+            if topic == "orders":
                 event = OrderEvent(**value)
                 await self.process_order_event(event)
-            elif topic == 'product-views':
+            elif topic == "product-views":
                 event = ProductViewEvent(**value)
                 await self.process_product_view_event(event)
-            elif topic == 'user-events':
+            elif topic == "user-events":
                 await self.process_user_event(value)
 
         except Exception as e:
@@ -174,11 +173,11 @@ class AnalyticsWorker:
         """Process an order event"""
         logger.debug(f"Processing order event: {event.event_type}")
 
-        if event.event_type == 'order.created':
+        if event.event_type == "order.created":
             await self.track_new_order(event)
-        elif event.event_type == 'order.paid':
+        elif event.event_type == "order.paid":
             await self.track_payment(event)
-        elif event.event_type == 'order.delivered':
+        elif event.event_type == "order.delivered":
             await self.track_delivery(event)
 
     async def process_product_view_event(self, event: ProductViewEvent):
@@ -200,10 +199,10 @@ class AnalyticsWorker:
             )
 
         # Update view counter in Redis
-        date_key = event.timestamp.strftime('%Y-%m-%d')
+        date_key = event.timestamp.strftime("%Y-%m-%d")
         await self.redis.incr(f"product_views:{event.product_id}:{date_key}")
 
-    async def process_user_event(self, event: Dict[str, Any]):
+    async def process_user_event(self, event: dict[str, Any]):
         """Process a user event"""
         logger.debug(f"Processing user event: {event.get('event_type')}")
         # Handle user-specific events
@@ -220,8 +219,8 @@ class AnalyticsWorker:
                 event.timestamp.date(),
                 event.order_id,
                 event.user_id,
-                Decimal(str(event.data.get('total_amount', 0))),
-                event.data.get('payment_method'),
+                Decimal(str(event.data.get("total_amount", 0))),
+                event.data.get("payment_method"),
             )
 
     async def track_payment(self, event: OrderEvent):
@@ -280,28 +279,26 @@ class AnalyticsWorker:
                 date,
             )
 
-            payment_breakdown = {r['payment_method']: r['count'] for r in payment_rows}
+            payment_breakdown = {r["payment_method"]: r["count"] for r in payment_rows}
 
         return DailySalesMetrics(
             date=date,
-            total_orders=row['total_orders'],
-            total_revenue=row['total_revenue'],
-            total_items_sold=row['total_items_sold'],
-            unique_customers=row['unique_customers'],
-            average_order_value=row['average_order_value'],
+            total_orders=row["total_orders"],
+            total_revenue=row["total_revenue"],
+            total_items_sold=row["total_items_sold"],
+            unique_customers=row["unique_customers"],
+            average_order_value=row["average_order_value"],
             payment_method_breakdown=payment_breakdown,
         )
 
     async def generate_product_performance_report(
-        self,
-        product_ids: List[str]
-    ) -> List[ProductPerformanceMetrics]:
+        self, product_ids: list[str]
+    ) -> list[ProductPerformanceMetrics]:
         """Generate product performance report"""
         logger.info(f"Generating product performance report for {len(product_ids)} products")
 
         end_date = datetime.now().date()
         start_date_7d = end_date - timedelta(days=7)
-        start_date_30d = end_date - timedelta(days=30)
 
         async with self.db_pool.acquire() as conn:
             products = []
@@ -343,29 +340,31 @@ class AnalyticsWorker:
                     conversion_rate = orders_7d / views_7d
 
                 # Get product name
-                product_name = await conn.fetchval(
-                    "SELECT name FROM catalog.products WHERE id = $1",
-                    product_id,
-                ) or "Unknown"
+                product_name = (
+                    await conn.fetchval(
+                        "SELECT name FROM catalog.products WHERE id = $1",
+                        product_id,
+                    )
+                    or "Unknown"
+                )
 
-                products.append(ProductPerformanceMetrics(
-                    product_id=product_id,
-                    product_name=product_name,
-                    views_last_7d=views_7d,
-                    views_last_30d=views_30d,
-                    orders_last_7d=orders_7d,
-                    orders_last_30d=0,
-                    conversion_rate=conversion_rate,
-                    revenue_last_7d=Decimal(str(revenue_7d)),
-                    revenue_last_30d=Decimal('0'),
-                ))
+                products.append(
+                    ProductPerformanceMetrics(
+                        product_id=product_id,
+                        product_name=product_name,
+                        views_last_7d=views_7d,
+                        views_last_30d=views_30d,
+                        orders_last_7d=orders_7d,
+                        orders_last_30d=0,
+                        conversion_rate=conversion_rate,
+                        revenue_last_7d=Decimal(str(revenue_7d)),
+                        revenue_last_30d=Decimal("0"),
+                    )
+                )
 
         return products
 
-    async def generate_user_behavior_report(
-        self,
-        user_id: str
-    ) -> UserBehaviorMetrics:
+    async def generate_user_behavior_report(self, user_id: str) -> UserBehaviorMetrics:
         """Generate user behavior report for a specific user"""
         logger.info(f"Generating user behavior report for {user_id}")
 
@@ -399,19 +398,19 @@ class AnalyticsWorker:
                 user_id,
             )
 
-            favorite_categories = [r['name'] for r in cat_rows]
+            favorite_categories = [r["name"] for r in cat_rows]
 
-        last_order = row['last_order_date']
+        last_order = row["last_order_date"]
         days_since = None
         if last_order:
             days_since = (datetime.now().date() - last_order).days
 
         return UserBehaviorMetrics(
             user_id=user_id,
-            total_orders=row['total_orders'],
-            total_spent=Decimal(str(row['total_spent'])),
+            total_orders=row["total_orders"],
+            total_spent=Decimal(str(row["total_spent"])),
             favorite_categories=favorite_categories,
-            average_order_value=Decimal(str(row['average_order_value'])),
+            average_order_value=Decimal(str(row["average_order_value"])),
             last_order_date=last_order,
             days_since_last_order=days_since,
         )
@@ -488,21 +487,24 @@ class AnalyticsWorker:
 def cli():
     """Analytics Worker CLI"""
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
 
 @cli.command()
-@click.option('--postgres-url', default='postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen', help='PostgreSQL connection URL')
-@click.option('--redis-url', default='redis://localhost:6379', help='Redis connection URL')
-@click.option('--kafka-brokers', default='localhost:9092', help='Kafka broker addresses')
+@click.option(
+    "--postgres-url",
+    default="postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen",
+    help="PostgreSQL connection URL",
+)
+@click.option("--redis-url", default="redis://localhost:6379", help="Redis connection URL")
+@click.option("--kafka-brokers", default="localhost:9092", help="Kafka broker addresses")
 def consume(postgres_url, redis_url, kafka_brokers):
     """Start consuming Kafka events"""
     worker = AnalyticsWorker(
         postgres_url=postgres_url,
         redis_url=redis_url,
-        kafka_brokers=kafka_brokers.split(','),
+        kafka_brokers=kafka_brokers.split(","),
     )
 
     async def run():
@@ -516,10 +518,19 @@ def consume(postgres_url, redis_url, kafka_brokers):
 
 
 @cli.command()
-@click.option('--postgres-url', default='postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen', help='PostgreSQL connection URL')
-@click.option('--redis-url', default='redis://localhost:6379', help='Redis connection URL')
-@click.option('--kafka-brokers', default='localhost:9092', help='Kafka broker addresses')
-@click.option('--date', type=click.DateTime(format='%Y-%m-%d'), default=None, help='Date for report (default: today)')
+@click.option(
+    "--postgres-url",
+    default="postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen",
+    help="PostgreSQL connection URL",
+)
+@click.option("--redis-url", default="redis://localhost:6379", help="Redis connection URL")
+@click.option("--kafka-brokers", default="localhost:9092", help="Kafka broker addresses")
+@click.option(
+    "--date",
+    type=click.DateTime(format="%Y-%m-%d"),
+    default=None,
+    help="Date for report (default: today)",
+)
 def report(postgres_url, redis_url, kafka_brokers, date):
     """Generate daily analytics report"""
     if date is None:
@@ -530,7 +541,7 @@ def report(postgres_url, redis_url, kafka_brokers, date):
     worker = AnalyticsWorker(
         postgres_url=postgres_url,
         redis_url=redis_url,
-        kafka_brokers=kafka_brokers.split(','),
+        kafka_brokers=kafka_brokers.split(","),
     )
 
     async def generate():
@@ -545,15 +556,19 @@ def report(postgres_url, redis_url, kafka_brokers, date):
 
 
 @cli.command()
-@click.option('--postgres-url', default='postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen', help='PostgreSQL connection URL')
-@click.option('--redis-url', default='redis://localhost:6379', help='Redis connection URL')
-@click.option('--kafka-brokers', default='localhost:9092', help='Kafka broker addresses')
+@click.option(
+    "--postgres-url",
+    default="postgres://shinkansen:shinkansen_dev_password@localhost:5432/shinkansen",
+    help="PostgreSQL connection URL",
+)
+@click.option("--redis-url", default="redis://localhost:6379", help="Redis connection URL")
+@click.option("--kafka-brokers", default="localhost:9092", help="Kafka broker addresses")
 def etl(postgres_url, redis_url, kafka_brokers):
     """Run ETL pipeline"""
     worker = AnalyticsWorker(
         postgres_url=postgres_url,
         redis_url=redis_url,
-        kafka_brokers=kafka_brokers.split(','),
+        kafka_brokers=kafka_brokers.split(","),
     )
 
     async def run():
@@ -566,5 +581,5 @@ def etl(postgres_url, redis_url, kafka_brokers):
     asyncio.run(run())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

@@ -1,15 +1,15 @@
 import { OrderStatus, PaymentMethod, PaymentStatus, ShipmentStatus, MovementType } from '@/types'
 export { OrderStatus, PaymentMethod, PaymentStatus, ShipmentStatus, MovementType } from '@/types'
 
-export const ORDER_STATUS_LIST = Object.values(OrderStatus).filter((s) => s !== OrderStatus.UNSPECIFIED)
+export const ORDER_STATUS_LIST = Object.values(OrderStatus).filter((s) => typeof s === 'number' && s !== OrderStatus.UNSPECIFIED) as OrderStatus[]
 
-export const PAYMENT_METHOD_LIST = Object.values(PaymentMethod).filter((m) => m !== PaymentMethod.UNSPECIFIED)
+export const PAYMENT_METHOD_LIST = Object.values(PaymentMethod).filter((m) => typeof m === 'number' && m !== PaymentMethod.UNSPECIFIED) as PaymentMethod[]
 
-export const PAYMENT_STATUS_LIST = Object.values(PaymentStatus).filter((s) => s !== PaymentStatus.UNSPECIFIED)
+export const PAYMENT_STATUS_LIST = Object.values(PaymentStatus).filter((s) => typeof s === 'number' && s !== PaymentStatus.UNSPECIFIED) as PaymentStatus[]
 
-export const SHIPMENT_STATUS_LIST = Object.values(ShipmentStatus).filter((s) => s !== ShipmentStatus.UNSPECIFIED)
+export const SHIPMENT_STATUS_LIST = Object.values(ShipmentStatus).filter((s) => typeof s === 'number' && s !== ShipmentStatus.UNSPECIFIED) as ShipmentStatus[]
 
-export const MOVEMENT_TYPE_LIST = Object.values(MovementType).filter((t) => t !== MovementType.UNSPECIFIED)
+export const MOVEMENT_TYPE_LIST = Object.values(MovementType).filter((t) => typeof t === 'number' && t !== MovementType.UNSPECIFIED) as MovementType[]
 
 export const ORDER_STATUS_COLORS: Record<string, string> = {
   [OrderStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
@@ -58,8 +58,8 @@ export const ORDER_STATUS_TRANSITIONS: Record<string, OrderStatus[]> = {
 
 export const CANCELLABLE_STATUSES = [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY_FOR_PICKUP]
 
-export const DEFAULT_WAREHOUSE_ID = 'default-warehouse-001'
-export const DEFAULT_DELIVERY_ZONE_ID = '00000000-0000-0000-0000-000000000001'
+export const DEFAULT_WAREHOUSE_ID = 'f0000000-0000-0000-0000-000000000001'
+export const DEFAULT_DELIVERY_ZONE_ID = 'a0000000-0000-0000-0000-000000000001'
 
 export const PREFECTURES = [
   '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
@@ -71,6 +71,56 @@ export const PREFECTURES = [
   '徳島県', '香川県', '愛媛県', '高知県',
   '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県',
 ]
+
+export const ORDER_STATUS_LABELS: Record<number, string> = {
+  [OrderStatus.PENDING]: 'Pending',
+  [OrderStatus.CONFIRMED]: 'Confirmed',
+  [OrderStatus.PROCESSING]: 'Processing',
+  [OrderStatus.SHIPPED]: 'Shipped',
+  [OrderStatus.IN_TRANSIT]: 'In Transit',
+  [OrderStatus.DELIVERED]: 'Delivered',
+  [OrderStatus.CANCELLED]: 'Cancelled',
+  [OrderStatus.EXPIRED]: 'Expired',
+  [OrderStatus.READY_FOR_PICKUP]: 'Ready for Pickup',
+  [OrderStatus.PICKED_UP]: 'Picked Up',
+  [OrderStatus.FAILED_DELIVERY]: 'Failed Delivery',
+  [OrderStatus.RETURNED]: 'Returned',
+}
+
+export const PAYMENT_METHOD_LABELS: Record<number, string> = {
+  [PaymentMethod.CREDIT_CARD]: 'Credit Card',
+  [PaymentMethod.KONBINI_SEVENELEVEN]: '7-Eleven',
+  [PaymentMethod.KONBINI_LAWSON]: 'Lawson',
+  [PaymentMethod.KONBINI_FAMILYMART]: 'FamilyMart',
+  [PaymentMethod.PAYPAY]: 'PayPay',
+  [PaymentMethod.RAKUTEN_PAY]: 'Rakuten Pay',
+}
+
+export const PAYMENT_STATUS_LABELS: Record<number, string> = {
+  [PaymentStatus.PENDING]: 'Pending',
+  [PaymentStatus.PROCESSING]: 'Processing',
+  [PaymentStatus.COMPLETED]: 'Completed',
+  [PaymentStatus.FAILED]: 'Failed',
+  [PaymentStatus.CANCELLED]: 'Cancelled',
+  [PaymentStatus.REFUNDED]: 'Refunded',
+}
+
+export const SHIPMENT_STATUS_LABELS: Record<number, string> = {
+  [ShipmentStatus.PREPARING]: 'Preparing',
+  [ShipmentStatus.SHIPPED]: 'Shipped',
+  [ShipmentStatus.IN_TRANSIT]: 'In Transit',
+  [ShipmentStatus.DELIVERED]: 'Delivered',
+  [ShipmentStatus.CANCELLED]: 'Cancelled',
+  [ShipmentStatus.FAILED_DELIVERY]: 'Failed Delivery',
+}
+
+export const MOVEMENT_TYPE_LABELS: Record<number, string> = {
+  [MovementType.INBOUND]: 'Inbound',
+  [MovementType.OUTBOUND]: 'Outbound',
+  [MovementType.RESERVATION]: 'Reservation',
+  [MovementType.RELEASE]: 'Release',
+  [MovementType.ADJUSTMENT]: 'Adjustment',
+}
 
 export function generateSessionId(): string {
   return 'session-' + crypto.randomUUID()

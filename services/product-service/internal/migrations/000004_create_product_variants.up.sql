@@ -15,18 +15,20 @@ CREATE TABLE IF NOT EXISTS catalog.product_variants (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Foreign key constraint linking variants to products
-ALTER TABLE catalog.product_variants ADD CONSTRAINT fk_variants_product
-    FOREIGN KEY (product_id) REFERENCES catalog.products(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_variants_product') THEN
+        ALTER TABLE catalog.product_variants ADD CONSTRAINT fk_variants_product
+            FOREIGN KEY (product_id) REFERENCES catalog.products(id) ON DELETE CASCADE;
+    END IF;
+END
+$$;
 
--- Index for efficient product variant lookups
-CREATE INDEX idx_variants_product ON catalog.product_variants(product_id);
+CREATE INDEX IF NOT EXISTS idx_variants_product ON catalog.product_variants(product_id);
 
--- Index for SKU filtering (if not null)
-CREATE INDEX idx_variants_sku ON catalog.product_variants(sku) WHERE sku IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_variants_sku ON catalog.product_variants(sku) WHERE sku IS NOT NULL;
 
--- Index for stock quantity filtering (in-stock variants)
-CREATE INDEX idx_variants_stock ON catalog.product_variants(stock_quantity) WHERE stock_quantity > 0;
+CREATE INDEX IF NOT EXISTS idx_variants_stock ON catalog.product_variants(stock_quantity) WHERE stock_quantity > 0;
 
 -- Comments for documentation
 COMMENT ON TABLE catalog.product_variants IS 'Product variants (sizes, colors, etc.)';

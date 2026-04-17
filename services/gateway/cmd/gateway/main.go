@@ -12,6 +12,9 @@ import (
 	"github.com/afasari/shinkansen-commerce/services/gateway/internal/config"
 	"github.com/afasari/shinkansen-commerce/services/gateway/internal/handler"
 	"github.com/afasari/shinkansen-commerce/services/gateway/internal/middleware"
+	"github.com/afasari/shinkansen-commerce/services/gateway/internal/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -35,40 +38,54 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	shutdown, err := telemetry.InitTelemetry(context.Background(), "gateway")
+	if err != nil {
+		logger.Warn("Failed to initialize telemetry, continuing without", zap.Error(err))
+	} else {
+		defer func() {
+			_ = shutdown(context.Background())
+		}()
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	productConn, err := grpc.NewClient(cfg.ProductServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcOpts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	}
+
+	productConn, err := grpc.NewClient(cfg.ProductServiceGRPCAddress, grpcOpts...)
 	if err != nil {
 		logger.Fatal("Failed to dial product service", zap.Error(err))
 	}
 	defer func() { _ = productConn.Close() }()
 
-	orderConn, err := grpc.NewClient(cfg.OrderServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	orderConn, err := grpc.NewClient(cfg.OrderServiceGRPCAddress, grpcOpts...)
 	if err != nil {
 		logger.Fatal("Failed to dial order service", zap.Error(err))
 	}
 	defer func() { _ = orderConn.Close() }()
 
-	userConn, err := grpc.NewClient(cfg.UserServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	userConn, err := grpc.NewClient(cfg.UserServiceGRPCAddress, grpcOpts...)
 	if err != nil {
 		logger.Fatal("Failed to dial user service", zap.Error(err))
 	}
 	defer func() { _ = userConn.Close() }()
 
-	paymentConn, err := grpc.NewClient(cfg.PaymentServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	paymentConn, err := grpc.NewClient(cfg.PaymentServiceGRPCAddress, grpcOpts...)
 	if err != nil {
 		logger.Fatal("Failed to dial payment service", zap.Error(err))
 	}
 	defer func() { _ = paymentConn.Close() }()
 
-	inventoryConn, err := grpc.NewClient(cfg.InventoryServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	inventoryConn, err := grpc.NewClient(cfg.InventoryServiceGRPCAddress, grpcOpts...)
 	if err != nil {
 		logger.Fatal("Failed to dial inventory service", zap.Error(err))
 	}
 	defer func() { _ = inventoryConn.Close() }()
 
-	deliveryConn, err := grpc.NewClient(cfg.DeliveryServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	deliveryConn, err := grpc.NewClient(cfg.DeliveryServiceGRPCAddress, grpcOpts...)
 	if err != nil {
 		logger.Fatal("Failed to dial delivery service", zap.Error(err))
 	}
@@ -93,9 +110,13 @@ func main() {
 		middleware.Auth(cfg.JWTSecret),
 	)
 
+	otelHandler := otelhttp.NewHandler(chain, "gateway",
+		otelhttp.WithMessageEvents(otelhttp.ReadEvents, otelhttp.WriteEvents),
+	)
+
 	srv := &http.Server{
 		Addr:    cfg.HTTPServerAddress,
-		Handler: chain,
+		Handler: otelHandler,
 	}
 
 	go func() {

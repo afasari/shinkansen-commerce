@@ -118,9 +118,11 @@ shinkansen-commerce/
 
 ```bash
 make up
+make db-migrate   # Run all migrations
+make db-seed     # Seed test data (delivery zones, products, stock)
 ```
 
-This starts PostgreSQL 15, Redis 7, and all microservices via Docker Compose.
+This starts PostgreSQL 15, Redis 7, and all microservices via Docker Compose. Then runs migrations and seeds test data.
 
 ### 2. Generate Code
 
@@ -180,6 +182,7 @@ make lint            # Run all linters (Go + Rust + Python)
 
 # Database
 make db-migrate      # Run all migrations
+make db-seed         # Seed test data (products, stock, delivery slots)
 make db-rollback     # Rollback last migration per service
 ```
 

@@ -1,8 +1,6 @@
 module github.com/afasari/shinkansen-commerce/gen/proto/go
 
-go 1.24.0
-
-toolchain go1.24.9
+go 1.25.0
 
 require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -71,13 +72,13 @@ func ProductSearchCacheKey(query string) string {
 }
 
 func NewRedisClient(redisURL string) *redis.Client {
-	// Parse Redis URL to extract host:port
-	// Format: redis://host:port or just host:port
 	addr := redisURL
 	if len(redisURL) > 8 && redisURL[:8] == "redis://" {
 		addr = redisURL[8:]
 	}
-	return redis.NewClient(&redis.Options{
+	client := redis.NewClient(&redis.Options{
 		Addr: addr,
 	})
+	_ = redisotel.InstrumentTracing(client)
+	return client
 }

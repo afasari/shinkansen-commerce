@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDeliveryStore } from '@/stores/delivery'
-import { ShipmentStatus, SHIPMENT_STATUS_LIST } from '@/utils/constants'
+import { ShipmentStatus, SHIPMENT_STATUS_LIST, SHIPMENT_STATUS_LABELS } from '@/utils/constants'
 import { formatDateTime } from '@/utils/format'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 
@@ -94,7 +94,7 @@ async function handleStatusUpdate() {
               <label class="label-field">{{ t('common.status') }}</label>
               <select v-model="statusUpdate" class="input-field mt-1">
                 <option value="" disabled>Select status...</option>
-                <option v-for="s in SHIPMENT_STATUS_LIST" :key="s" :value="s">{{ s.replace('SHIPMENT_STATUS_', '').replace(/_/g, ' ') }}</option>
+                <option v-for="s in SHIPMENT_STATUS_LIST" :key="s" :value="s">{{ SHIPMENT_STATUS_LABELS[s] || s }}</option>
               </select>
             </div>
             <div>

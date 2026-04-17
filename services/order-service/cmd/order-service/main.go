@@ -14,7 +14,8 @@ import (
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/config"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/db"
 	"github.com/afasari/shinkansen-commerce/services/order-service/internal/service"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/afasari/shinkansen-commerce/services/order-service/internal/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -33,7 +34,16 @@ func main() {
 	}
 	defer func() { _ = logger.Sync() }()
 
-	dbpool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+	shutdown, err := telemetry.InitTelemetry(context.Background(), "order-service")
+	if err != nil {
+		logger.Warn("Failed to initialize telemetry, continuing without", zap.Error(err))
+	} else {
+		defer func() {
+			_ = shutdown(context.Background())
+		}()
+	}
+
+	dbpool, err := db.Connect(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
@@ -43,7 +53,10 @@ func main() {
 	redisClient := cache.NewRedisClient(cfg.RedisURL)
 	cacheClient := cache.NewRedisCache(redisClient)
 
-	conn, err := grpc.NewClient(cfg.ProductServiceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(cfg.ProductServiceGRPCAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
 	if err != nil {
 		logger.Fatal("Failed to dial product service", zap.Error(err))
 	}
@@ -53,7 +66,7 @@ func main() {
 
 	orderService := service.NewOrderService(queries, productClient, cacheClient, logger)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	orderpb.RegisterOrderServiceServer(server, orderService)
 	reflection.Register(server)
 

@@ -1,29 +1,29 @@
 import type { Money, Pagination } from './common'
 
 export enum OrderStatus {
-  UNSPECIFIED = 'ORDER_STATUS_UNSPECIFIED',
-  PENDING = 'ORDER_STATUS_PENDING',
-  CONFIRMED = 'ORDER_STATUS_CONFIRMED',
-  PROCESSING = 'ORDER_STATUS_PROCESSING',
-  SHIPPED = 'ORDER_STATUS_SHIPPED',
-  IN_TRANSIT = 'ORDER_STATUS_IN_TRANSIT',
-  DELIVERED = 'ORDER_STATUS_DELIVERED',
-  CANCELLED = 'ORDER_STATUS_CANCELLED',
-  EXPIRED = 'ORDER_STATUS_EXPIRED',
-  READY_FOR_PICKUP = 'ORDER_STATUS_READY_FOR_PICKUP',
-  PICKED_UP = 'ORDER_STATUS_PICKED_UP',
-  FAILED_DELIVERY = 'ORDER_STATUS_FAILED_DELIVERY',
-  RETURNED = 'ORDER_STATUS_RETURNED',
+  UNSPECIFIED = 0,
+  PENDING = 1,
+  CONFIRMED = 2,
+  PROCESSING = 3,
+  SHIPPED = 4,
+  IN_TRANSIT = 5,
+  DELIVERED = 6,
+  CANCELLED = 7,
+  EXPIRED = 8,
+  READY_FOR_PICKUP = 9,
+  PICKED_UP = 10,
+  FAILED_DELIVERY = 11,
+  RETURNED = 12,
 }
 
 export enum PaymentMethod {
-  UNSPECIFIED = 'PAYMENT_METHOD_UNSPECIFIED',
-  CREDIT_CARD = 'PAYMENT_METHOD_CREDIT_CARD',
-  KONBINI_SEVENELEVEN = 'PAYMENT_METHOD_KONBINI_SEVENELEVEN',
-  KONBINI_LAWSON = 'PAYMENT_METHOD_KONBINI_LAWSON',
-  KONBINI_FAMILYMART = 'PAYMENT_METHOD_KONBINI_FAMILYMART',
-  PAYPAY = 'PAYMENT_METHOD_PAYPAY',
-  RAKUTEN_PAY = 'PAYMENT_METHOD_RAKUTEN_PAY',
+  UNSPECIFIED = 0,
+  CREDIT_CARD = 1,
+  KONBINI_SEVENELEVEN = 2,
+  KONBINI_LAWSON = 3,
+  KONBINI_FAMILYMART = 4,
+  PAYPAY = 5,
+  RAKUTEN_PAY = 6,
 }
 
 export interface ShippingAddress {
@@ -55,13 +55,13 @@ export interface Order {
   tax_amount: Money
   discount_amount: Money
   total_amount: Money
-  points_applied: string
+  points_applied: number
   shipping_address: ShippingAddress
   payment_method: PaymentMethod
   created_at: string
   updated_at: string
-  delivery_slot_id: string
-  estimated_delivery_at: string
+  delivery_slot_id?: string
+  estimated_delivery_at?: string
   items: OrderItem[]
 }
 

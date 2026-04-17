@@ -14,6 +14,8 @@ import (
 	"github.com/afasari/shinkansen-commerce/services/payment-service/internal/config"
 	"github.com/afasari/shinkansen-commerce/services/payment-service/internal/db"
 	"github.com/afasari/shinkansen-commerce/services/payment-service/internal/service"
+	"github.com/afasari/shinkansen-commerce/services/payment-service/internal/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -31,6 +33,15 @@ func main() {
 	}
 	defer func() { _ = logger.Sync() }()
 
+	shutdown, err := telemetry.InitTelemetry(context.Background(), "payment-service")
+	if err != nil {
+		logger.Warn("Failed to initialize telemetry, continuing without", zap.Error(err))
+	} else {
+		defer func() {
+			_ = shutdown(context.Background())
+		}()
+	}
+
 	ctx := context.Background()
 	dbpool, err := db.New(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -43,7 +54,7 @@ func main() {
 	cacheClient := cache.NewRedisCache(redisClient)
 	paymentService := service.NewPaymentService(queries, cacheClient, logger)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	paymentv1.RegisterPaymentServiceServer(server, paymentService)
 	reflection.Register(server)
 

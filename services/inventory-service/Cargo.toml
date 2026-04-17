@@ -21,7 +21,14 @@ shinkansen-proto = { path = "../../gen/proto/rust" }
 tokio-stream = { version = "0.1", features = ["net"] }
 
 tracing = "0.1"
+tracing-log = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+opentelemetry = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
+tracing-opentelemetry = "0.28"
+opentelemetry-http = "0.27"
+http = "0.2"
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

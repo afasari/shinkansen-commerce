@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Order, ListOrdersParams, ListOrdersResponse, OrderStatus, CreateOrderRequest, CreateOrderResponse } from '@/types'
+import { OrderStatus, type Order, type ListOrdersParams, type ListOrdersResponse, type CreateOrderRequest, type CreateOrderResponse } from '@/types'
 import * as ordersApi from '@/api/orders'
 
 export const useOrderStore = defineStore('order', () => {
@@ -51,7 +51,7 @@ export const useOrderStore = defineStore('order', () => {
   async function cancelOrder(orderId: string, reason?: string) {
     await ordersApi.cancelOrder(orderId, reason)
     if (currentOrder.value && currentOrder.value.id === orderId) {
-      currentOrder.value.status = 'ORDER_STATUS_CANCELLED' as OrderStatus
+      currentOrder.value.status = OrderStatus.CANCELLED
     }
   }
 

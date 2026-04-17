@@ -126,14 +126,14 @@ COMMENT ON EXTENSION pg_trgm IS
 COMMENT ON INDEX catalog.idx_products_name_trgm IS 
     'GIN trigram index for fuzzy name matching. Enables similarity() function for efficient typo correction.';
 
-COMMENT ON FUNCTION catalog.search_products_fuzzy() IS 
+COMMENT ON FUNCTION catalog.search_products_fuzzy(text, uuid, bigint, bigint, boolean, real) IS 
     'Fuzzy search function combining exact full-text match with trigram similarity. Parameters: search_query, category_filter, min_price, max_price, stock_only, fuzzy_threshold. Returns ranked results with similarity score.';
 
 COMMENT ON TABLE catalog.search_analytics IS 
     'Analytics table tracking search queries, results count, and user behavior. Used for business intelligence, product optimization, and search insights.';
 
-COMMENT ON FUNCTION catalog.track_search() IS 
+COMMENT ON FUNCTION catalog.track_search(text, integer, uuid) IS 
     'Function to log search queries to analytics table. Tracks query text, results count, and optional user_id for search behavior analysis.';
 
-COMMENT ON FUNCTION catalog.get_top_search_queries() IS 
+COMMENT ON FUNCTION catalog.get_top_search_queries(integer) IS 
     'Function to retrieve most popular search queries. Returns top 100 queries from the last N days with search count and unique user count. Useful for understanding user intent and product demand.';

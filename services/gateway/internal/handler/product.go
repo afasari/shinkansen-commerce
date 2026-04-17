@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	productpb "github.com/afasari/shinkansen-commerce/gen/proto/go/product"
 	sharedpb "github.com/afasari/shinkansen-commerce/gen/proto/go/shared"
@@ -12,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ProductHandler struct {
@@ -277,4 +279,33 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 func isAdmin(r *http.Request) bool {
 	role, _ := r.Context().Value(middleware.RoleKey).(string)
 	return role == "admin"
+}
+
+func isAuthenticated(r *http.Request) bool {
+	userID := r.Context().Value(middleware.UserIDKey)
+	return userID != nil
+}
+
+func getString(m map[string]interface{}, key string) string {
+	if v, ok := m[key].(string); ok {
+		return v
+	}
+	return ""
+}
+
+func getFloat(m map[string]interface{}, key string) float64 {
+	if v, ok := m[key].(float64); ok {
+		return v
+	}
+	return 0
+}
+
+func parseTimestamp(m map[string]interface{}, key string) *timestamppb.Timestamp {
+	if v, ok := m[key].(string); ok && v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err == nil {
+			return timestamppb.New(t)
+		}
+	}
+	return nil
 }

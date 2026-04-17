@@ -6,7 +6,7 @@ import { useCheckoutStore } from '@/stores/checkout'
 import { useAddressStore } from '@/stores/address'
 import { useDeliveryStore } from '@/stores/delivery'
 import { useCartStore } from '@/stores/cart'
-import { formatPrice, formatDate, formatTime } from '@/utils/format'
+import { formatPrice, formatDate, formatTime, createMoney } from '@/utils/format'
 import { PaymentMethod, type Address, type ShippingAddress, type DeliverySlot } from '@/types'
 import { PREFECTURES, DEFAULT_DELIVERY_ZONE_ID } from '@/utils/constants'
 
@@ -50,6 +50,8 @@ const paymentMethods = [
   { value: PaymentMethod.RAKUTEN_PAY, label: t('checkout.rakutenPay') },
 ]
 
+const isCreditCard = computed(() => checkout.selectedPaymentMethod === PaymentMethod.CREDIT_CARD)
+
 function selectExistingAddress(addr: Address) {
   selectedAddressRef.value = addr
   const shippingAddr: ShippingAddress = {
@@ -83,13 +85,14 @@ function goToStep4() {
 }
 
 async function handlePlaceOrder() {
-  const res = await checkout.placeOrder()
+  const cardData = isCreditCard.value
+    ? { cardNumber: cardNumber.value, cardExpiry: cardExpiry.value, cardCvv: cardCvv.value }
+    : undefined
+  const res = await checkout.placeOrder(cardData)
   if (res) {
     router.push({ name: 'checkout-success' })
   }
 }
-
-const isCreditCard = computed(() => checkout.selectedPaymentMethod === PaymentMethod.CREDIT_CARD)
 </script>
 
 <template>
@@ -111,6 +114,13 @@ const isCreditCard = computed(() => checkout.selectedPaymentMethod === PaymentMe
 
     <div v-if="checkout.error" class="rounded-md bg-red-50 p-3 mb-6">
       <p class="text-sm text-red-700">{{ checkout.error }}</p>
+    </div>
+
+    <div v-if="checkout.loading && checkout.loadingStep" class="rounded-md bg-blue-50 p-3 mb-6">
+      <div class="flex items-center gap-2">
+        <div class="h-4 w-4 animate-spin rounded-full border-2 border-blue-300 border-t-blue-600"></div>
+        <p class="text-sm text-blue-700">{{ checkout.loadingStep }}</p>
+      </div>
     </div>
 
     <!-- Step 1: Address -->
@@ -209,7 +219,7 @@ const isCreditCard = computed(() => checkout.selectedPaymentMethod === PaymentMe
       <div class="pt-4 border-t">
         <label class="label-field">{{ t('checkout.applyPoints') }}</label>
         <input v-model.number="checkout.pointsToApply" type="number" min="0" class="input-field mt-1" />
-        <p class="text-xs text-gray-500 mt-1">{{ t('checkout.pointsValue', { value: Math.floor(checkout.pointsToApply / 10) }) }}</p>
+        <p class="text-xs text-gray-500 mt-1">{{ t('checkout.pointsValue', { value: checkout.pointsDiscount }) }}</p>
       </div>
 
       <div class="flex justify-between">
@@ -229,23 +239,43 @@ const isCreditCard = computed(() => checkout.selectedPaymentMethod === PaymentMe
         <p class="text-sm text-gray-600">{{ checkout.selectedAddress?.address_line1 }} {{ checkout.selectedAddress?.address_line2 }}</p>
       </div>
 
+      <div v-if="checkout.selectedDeliverySlot" class="card p-4">
+        <h3 class="text-sm font-semibold text-gray-900 mb-2">{{ t('checkout.selectDeliverySlot') }}</h3>
+        <p class="text-sm text-gray-600">{{ formatDate(checkout.selectedDeliverySlot.start_time) }} {{ formatTime(checkout.selectedDeliverySlot.start_time) }} - {{ formatTime(checkout.selectedDeliverySlot.end_time) }}</p>
+      </div>
+
       <div class="card p-4">
         <h3 class="text-sm font-semibold text-gray-900 mb-2">{{ t('common.items') }}</h3>
         <div v-for="item in cartStore.items" :key="`${item.product_id}-${item.variant_id}`" class="flex justify-between py-2 text-sm">
           <span>{{ item.product_name }} x{{ item.quantity }}</span>
           <span class="font-medium">{{ formatPrice({ currency: item.unit_price.currency, units: item.unit_price.units * item.quantity, nanos: 0 }) }}</span>
         </div>
-        <div class="border-t pt-2 mt-2 flex justify-between font-semibold">
+      </div>
+
+      <div class="card p-4 space-y-2">
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-600">{{ t('common.subtotal') }}</span>
+          <span>{{ formatPrice(checkout.subtotal) }}</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-600">{{ t('common.tax') }} (10%)</span>
+          <span>{{ formatPrice(createMoney(checkout.tax)) }}</span>
+        </div>
+        <div v-if="checkout.pointsDiscount > 0" class="flex justify-between text-sm">
+          <span class="text-gray-600">{{ t('common.discount') }} ({{ checkout.pointsToApply }} pts)</span>
+          <span class="text-green-600">-{{ formatPrice(createMoney(checkout.pointsDiscount)) }}</span>
+        </div>
+        <div class="border-t pt-2 flex justify-between font-semibold">
           <span>{{ t('common.total') }}</span>
-          <span>{{ formatPrice(cartStore.subtotal) }}</span>
+          <span>{{ formatPrice(createMoney(checkout.total)) }}</span>
         </div>
       </div>
 
       <div class="flex justify-between">
-        <button @click="checkout.step = 3" class="btn-secondary">{{ t('common.back') }}</button>
+        <button @click="checkout.step = 3" class="btn-secondary" :disabled="checkout.loading">{{ t('common.back') }}</button>
         <button @click="handlePlaceOrder" :disabled="checkout.loading" class="btn-primary">
           <span v-if="checkout.loading" class="animate-spin mr-2 inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-          {{ t('checkout.placeOrder') }}
+          {{ checkout.loading ? (checkout.loadingStep || t('checkout.placeOrder')) : t('checkout.placeOrder') }}
         </button>
       </div>
     </div>

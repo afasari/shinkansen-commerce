@@ -20,7 +20,7 @@ def test_cli_start():
     runner = CliRunner()
     result = runner.invoke(main, ["start"])
     assert result.exit_code == 0
-    assert "Starting analytics worker" in result.output
+    assert "starting_analytics_worker" in result.output
 
 
 def test_cli_metrics():

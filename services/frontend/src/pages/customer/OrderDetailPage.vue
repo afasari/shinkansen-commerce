@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/order'
 import { formatPrice, formatDate, formatDateTime } from '@/utils/format'
-import { OrderStatus, CANCELLABLE_STATUSES, ORDER_STATUS_TRANSITIONS } from '@/utils/constants'
+import { OrderStatus, CANCELLABLE_STATUSES, ORDER_STATUS_TRANSITIONS, PAYMENT_METHOD_LABELS } from '@/utils/constants'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppModal from '@/components/common/AppModal.vue'
 
@@ -29,16 +29,9 @@ async function handleCancel() {
   cancelReason.value = ''
 }
 
-function getPaymentMethodLabel(method: string): string {
-  const map: Record<string, string> = {
-    PAYMENT_METHOD_CREDIT_CARD: t('checkout.creditCard'),
-    PAYMENT_METHOD_KONBINI_SEVENELEVEN: t('checkout.konbiniSevenEleven'),
-    PAYMENT_METHOD_KONBINI_LAWSON: t('checkout.konbiniLawson'),
-    PAYMENT_METHOD_KONBINI_FAMILYMART: t('checkout.konbiniFamilyMart'),
-    PAYMENT_METHOD_PAYPAY: t('checkout.paypay'),
-    PAYMENT_METHOD_RAKUTEN_PAY: t('checkout.rakutenPay'),
-  }
-  return map[method] || method
+function getPaymentMethodLabel(method: string | number): string {
+  const num = typeof method === 'number' ? method : Number(method)
+  return PAYMENT_METHOD_LABELS[num] || String(method)
 }
 </script>
 

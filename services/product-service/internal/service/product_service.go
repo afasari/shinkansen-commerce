@@ -14,6 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -88,6 +91,11 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *productpb.Creat
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, req *productpb.GetProductRequest) (*productpb.GetProductResponse, error) {
+	ctx, span := otel.Tracer("product-service").Start(ctx, "ProductService.GetProduct",
+		trace.WithAttributes(attribute.String("product.id", req.ProductId)),
+	)
+	defer span.End()
+
 	cacheKey := cache.ProductCacheKey(req.ProductId)
 	var cached db.GetProductRow
 

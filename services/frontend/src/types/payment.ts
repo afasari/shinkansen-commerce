@@ -1,21 +1,22 @@
 import type { Money } from './common'
+import type { PaymentMethod } from './order'
 
 export enum PaymentStatus {
-  UNSPECIFIED = 'PAYMENT_STATUS_UNSPECIFIED',
-  PENDING = 'PAYMENT_STATUS_PENDING',
-  PROCESSING = 'PAYMENT_STATUS_PROCESSING',
-  COMPLETED = 'PAYMENT_STATUS_COMPLETED',
-  FAILED = 'PAYMENT_STATUS_FAILED',
-  CANCELLED = 'PAYMENT_STATUS_CANCELLED',
-  REFUNDED = 'PAYMENT_STATUS_REFUNDED',
+  UNSPECIFIED = 0,
+  PENDING = 1,
+  PROCESSING = 2,
+  COMPLETED = 3,
+  FAILED = 4,
+  CANCELLED = 5,
+  REFUNDED = 6,
 }
 
 export interface Payment {
   id: string
   order_id: string
-  method: string
+  method: string | number
   amount: Money
-  status: PaymentStatus
+  status: PaymentStatus | string
   created_at: string
   updated_at: string
   transaction_id: string
@@ -23,7 +24,7 @@ export interface Payment {
 
 export interface CreatePaymentRequest {
   order_id: string
-  method: string
+  method: PaymentMethod | string | number
   amount: Money
 }
 

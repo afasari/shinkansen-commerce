@@ -20,8 +20,8 @@ function setTokens(response: AuthResponse) {
   localStorage.setItem('access_token', response.access_token)
   localStorage.setItem('refresh_token', response.refresh_token)
   localStorage.setItem('user_id', response.user_id)
-  if (response.role) {
-    localStorage.setItem('user_role', response.role)
+  if (response.role !== undefined && response.role !== null) {
+    localStorage.setItem('user_role', String(response.role))
   }
 }
 
@@ -75,30 +75,19 @@ client.interceptors.response.use(
       originalRequest._retry = true
       isRefreshing = true
 
-      const refreshToken = getRefreshToken()
-      if (!refreshToken) {
+      try {
+        const refreshToken = getRefreshToken()
+        if (!refreshToken) {
+          clearTokens()
+          processQueue(error, null)
+          window.location.href = '/login'
+          return Promise.reject(error)
+        }
+
         clearTokens()
+        processQueue(error, null)
         window.location.href = '/login'
         return Promise.reject(error)
-      }
-
-      try {
-        const { data } = await axios.post('/v1/users/login', {
-          grant_type: 'refresh_token',
-          refresh_token: refreshToken,
-        })
-
-        const authData = data as AuthResponse
-        setTokens(authData)
-        processQueue(null, authData.access_token)
-
-        originalRequest.headers.Authorization = `Bearer ${authData.access_token}`
-        return client(originalRequest)
-      } catch (refreshError) {
-        processQueue(refreshError, null)
-        clearTokens()
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
       }

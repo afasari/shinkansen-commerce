@@ -7,5 +7,10 @@ import (
 )
 
 func Connect(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
-	return pgxpool.New(ctx, databaseURL)
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return nil, err
+	}
+	config.ConnConfig.Tracer = &otelQueryTracer{}
+	return pgxpool.NewWithConfig(ctx, config)
 }

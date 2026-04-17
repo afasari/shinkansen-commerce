@@ -6,7 +6,7 @@ export interface User {
   created_at: string
   updated_at: string
   active: boolean
-  role: string
+  role: string | number
 }
 
 export interface Address {
@@ -39,7 +39,7 @@ export interface AuthResponse {
   user_id: string
   access_token: string
   refresh_token: string
-  role: string
+  role: string | number
 }
 
 export interface UpdateUserRequest {

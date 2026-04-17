@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useHealthCheck } from '@/composables/useHealthCheck'
 import ApiDisconnectedBanner from '@/components/common/ApiDisconnectedBanner.vue'
+import Navbar from '@/components/layout/Navbar.vue'
 
 const cartStore = useCartStore()
 const { isHealthy } = useHealthCheck()

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/order'
 import { useDeliveryStore } from '@/stores/delivery'
-import { ShipmentStatus } from '@/types'
+import { OrderStatus } from '@/types'
 import { formatDateTime } from '@/utils/format'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { TruckIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
@@ -47,7 +47,7 @@ async function loadShipment(shipmentId: string) {
         </div>
       </div>
 
-      <div v-if="order.status === 'ORDER_STATUS_PENDING' || order.status === 'ORDER_STATUS_CONFIRMED'" class="text-center py-12 text-gray-500">
+      <div v-if="order.status === OrderStatus.PENDING || order.status === OrderStatus.CONFIRMED" class="text-center py-12 text-gray-500">
         <p>{{ t('shipment.preparing') }}...</p>
       </div>
 
@@ -57,9 +57,9 @@ async function loadShipment(shipmentId: string) {
         <div class="space-y-0">
           <div v-for="(event, idx) in [
             { status: t('shipment.preparing'), desc: t('shipment.preparing'), done: true },
-            { status: t('shipment.shipped'), desc: t('shipment.shipped'), done: ['ORDER_STATUS_SHIPPED','ORDER_STATUS_IN_TRANSIT','ORDER_STATUS_DELIVERED'].includes(order.status) },
-            { status: t('shipment.inTransit'), desc: t('shipment.inTransit'), done: ['ORDER_STATUS_IN_TRANSIT','ORDER_STATUS_DELIVERED'].includes(order.status) },
-            { status: t('shipment.delivered'), desc: t('shipment.delivered'), done: order.status === 'ORDER_STATUS_DELIVERED' },
+            { status: t('shipment.shipped'), desc: t('shipment.shipped'), done: [OrderStatus.SHIPPED, OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED].includes(order.status) },
+            { status: t('shipment.inTransit'), desc: t('shipment.inTransit'), done: [OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED].includes(order.status) },
+            { status: t('shipment.delivered'), desc: t('shipment.delivered'), done: order.status === OrderStatus.DELIVERED },
           ]" :key="idx" class="flex items-start gap-3">
             <div class="flex flex-col items-center">
               <div :class="[event.done ? 'bg-shinkansen-600 text-white' : 'bg-gray-200 text-gray-400', 'h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0']">
